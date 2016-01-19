@@ -1,0 +1,7 @@
+# -*- coding: utf-8 -*-
+# config.yaml
+# Configuration file for seisplot.py
+
+tpi: 50  #  Traces per inch   (less -> bigger plot)
+ips: 2  #  Inches per second (more -> bigger plot)
+fontsize: 10
