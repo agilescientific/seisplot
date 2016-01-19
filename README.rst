@@ -18,4 +18,4 @@ Then edit `config.yaml` to meet your requirements.
 
 Run the script from the command line::
 
-    python seisplot.py --config config.yaml <infile.segy> <outfile.png>
+    python seisplot.py --config config.yaml <infile.segy>
