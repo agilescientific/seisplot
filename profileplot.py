@@ -35,11 +35,11 @@ def decorate_seismic(ax, fs=10):
     """
     Add various things to the seismic plot.
     """
-    ax.set_ylabel('Two-way time [ms]', fontsize=fs-2)
-    ax.set_xlabel('Trace no.', fontsize=fs - 2)
-    ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
+    ax.set_ylabel('Time samples', fontsize=fs)
+    ax.set_xlabel('Trace number', fontsize=fs)
+    ax.set_xticklabels(ax.get_xticks(), fontsize=fs)
     # par1.set_xticklabels(par1.get_xticks(), fontsize=fs - 2)
-    ax.set_yticklabels(ax.get_xticks(), fontsize=fs - 2)
+    ax.set_yticklabels(ax.get_yticks(), fontsize=fs)
     ax.grid()
     return ax
 
@@ -131,9 +131,9 @@ def plot_histogram(hist_ax, data, fs=10):
     largest = max(np.amax(data), abs(np.amin(data)))
     clip_val = np.percentile(data, 99.0)
     hist_ax.patch.set_alpha(0.5)
-    hist_ax.hist(np.ravel(data), bins=int(50.0 / (clip_val / largest)), alpha=0.5, color=['black'])
+    hist_ax.hist(np.ravel(data), bins=int(50.0 / (clip_val / largest)), alpha=0.5, color=['black'], linewidth=0)
     hist_ax.set_xlim(-clip_val, clip_val)
-    hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
+    hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs-4)
     hist_ax.set_xlabel('amplitude', fontsize=fs - 4)
     hist_ax.set_ylim(hist_ax.get_ylim()[0], hist_ax.get_ylim()[1]),
     hist_ax.set_yticks([])
@@ -148,24 +148,21 @@ def main(target, cfg):
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
-    elev, esp, ens = [], [], []  # energy source point number
-    for i, trace in enumerate(section.traces):
-        nsamples = trace.header.number_of_samples_in_this_trace
-        dt = trace.header.sample_interval_in_ms_for_this_trace
-        elev.append(trace.header.receiver_group_elevation)
-        esp.append(trace.header.energy_source_point_number)
-        ens.append(trace.header.ensemble_number)
-
+    nsamples = section.traces[0].header.number_of_samples_in_this_trace
+    dt = section.traces[0].header.sample_interval_in_ms_for_this_trace
     ntraces = len(section.traces)
-    tbase = np.arange(0, nsamples * dt / 1000.0, dt)
+    tbase = np.linspace(0, ((nsamples-1) * (dt / 1000.0)), nsamples)
     tstart = 0
     tend = np.amax(tbase)
-    aspect = float(ntraces) / float(nsamples)
 
     # Build the data container
+    elev, esp, ens = [], [], []  # energy source point number
     data = np.zeros((nsamples, ntraces))
     for i, trace in enumerate(section.traces):
         data[:, i] = trace.data
+        elev.append(trace.header.receiver_group_elevation)
+        esp.append(trace.header.energy_source_point_number)
+        ens.append(trace.header.ensemble_number)
 
     line_extents = {'first_trace': 1,
                     'last_trace': ntraces,
@@ -174,7 +171,7 @@ def main(target, cfg):
                     }
 
     clip_val = np.percentile(data, 99.0)
-
+    print(line_extents)
     # Notify user of parameters
     Notice.info("n_traces   {}".format(ntraces))
     Notice.info("n_samples  {}".format(nsamples))
@@ -200,17 +197,27 @@ def main(target, cfg):
     mih = 8  # Minimum plot height
     fhh = 5  # File header height
 
+    # Width and height of data area
+    wd = ntraces / cfg['tpi']
+    hd = cfg['ips'] * (tend - tstart)/1000
+
+    aspect = hd / wd
+
+    print(tstart, tend, cfg['ips'], wd, hd)
+
     # Width is determined by tpi, plus a constant for the sidelabel, plus 1 in
-    w = wsl + (ntraces / cfg['tpi']) + 1
+    w = wsl + wd + 1
     # Height is given by ips, but with a minimum of 6 inches, plus 1 in
-    h = max(mih, cfg['ips'] * (tend - tstart)/1000) + 1
+    h = max(mih, hd) + 1
+
+    print(w, h)
 
     # One inch in height and width
     oih = 1/h
     oiw = 1/w
 
     # Margins, CSS like
-    m = 0.5
+    m = 0.55
     mt, mr, mb, ml = m*oih, 2*m*oiw, m*oih, 2*m*oiw
 
     # Position of divider between seismic and sidelabel
@@ -225,34 +232,32 @@ def main(target, cfg):
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
     ax = fig.add_axes([ml, mb, wsd, (1-mb-mt)])
-    par1 = ax.twiny()
-    par2 = ax.twiny()
+    #par1 = ax.twiny()
+    #par2 = ax.twiny()
 
     # Offset the top spine of par2.  The ticks and label have already been
     # placed on the top by twiny above.
-    fig.subplots_adjust(top=0.75)
-    par2.spines["top"].set_position(("axes", 1.2))
+    #fig.subplots_adjust(top=0.75)
+    #par2.spines["top"].set_position(("axes", 1.2))
 
     # Having been created by twiny, par2 has its frame off, so the line of its
     # detached spine is invisible.  First, activate the frame but make the
     # patch and spines invisible.
-    par2 = make_patch_spines_invisible(par2)
+    #par2 = make_patch_spines_invisible(par2)
 
     # Second, show the right spine.
-    par2.spines["top"].set_visible(True)
+    #par2.spines["top"].set_visible(True)
 
     # p2 = par1.plot(ens, np.zeros_like(ens))
 
-    par1.set_xlabel("CDP number", fontsize=fs-2)
-    par2.set_xlabel("source elevation", fontsize=fs-2)
+    #par1.set_xlabel("CDP number", fontsize=fs-2)
+    #par2.set_xlabel("source elevation", fontsize=fs-2)
 
-    im = ax.imshow(data, cmap=cm.gray, origin='upper',
+    im = ax.imshow(data,
+                   cmap=cm.gray,
+                   origin='upper',
                    vmin=-clip_val,
                    vmax=clip_val,
-                   extent=(line_extents['first_trace'],
-                           line_extents['last_trace'],
-                           line_extents['end_time'],
-                           line_extents['start_time']),
                    aspect=aspect
                    )
 
