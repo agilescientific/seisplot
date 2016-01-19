@@ -3,7 +3,7 @@
 """
 Simple seismic plotter.
 
-:copyright: 2015 Agile Geoscience
+:copyright: 2016 Agile Geoscience
 :license: Apache 2.0
 """
 # Import standard libraries.
@@ -21,56 +21,15 @@ from obspy.segy.segy import readSEGY
 
 # Import our stuff.
 from notice import Notice
+from utils import add_subplot_axes
+from utils import make_patch_spines_invisible
 
 
-def add_subplot_axes(ax, rect, axisbg='w'):
-    """
-    Facilitates the addition of a small subplot within another plot.
-
-    From: http://stackoverflow.com/questions/17458580/
-    embedding-small-plots-inside-subplots-in-matplotlib
-
-    License: CC-BY-SA
-
-    Args:
-        ax (axis): A matplotlib axis.
-        rect (list): A rect specifying [left pos, bot pos, width, height]
-    Returns:
-        axis: The sub-axis in the specified position.
-    """
-    def axis_to_fig(axis):
-        fig = axis.figure
-
-        def transform(coord):
-            a = axis.transAxes.transform(coord)
-            return fig.transFigure.inverted().transform(a)
-
-        return transform
-
-    fig = plt.gcf()
-    left, bottom, width, height = rect
-    trans = axis_to_fig(ax)
-    x1, y1 = trans((left, bottom))
-    x2, y2 = trans((left + width, bottom + height))
-    subax = fig.add_axes([x1, y1, x2 - x1, y2 - y1])
-    x_labelsize = subax.get_xticklabels()[0].get_size()
-    y_labelsize = subax.get_yticklabels()[0].get_size()
-    x_labelsize *= rect[2] ** 0.5
-    y_labelsize *= rect[3] ** 0.5
-    subax.xaxis.set_tick_params(labelsize=x_labelsize)
-    subax.yaxis.set_tick_params(labelsize=y_labelsize)
-    return subax
-
-
-def make_patch_spines_invisible(ax):
-    """
-    Removes spines from patches.
-    """
-    ax.set_frame_on(True)
-    ax.patch.set_visible(False)
-    for sp in ax.spines.values():
-        sp.set_visible(False)
-    return ax
+#####################################################################
+#
+# VARIOUS PLOTTING FUNCTIONS
+#
+#####################################################################
 
 def decorate_seismic(ax, fs=10):
     """
@@ -79,7 +38,7 @@ def decorate_seismic(ax, fs=10):
     ax.set_ylabel('Two-way time [ms]', fontsize=fs-2)
     ax.set_xlabel('Trace no.', fontsize=fs - 2)
     ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
-    #par1.set_xticklabels(par1.get_xticks(), fontsize=fs - 2)
+    # par1.set_xticklabels(par1.get_xticks(), fontsize=fs - 2)
     ax.set_yticklabels(ax.get_xticks(), fontsize=fs - 2)
     ax.grid()
     return ax
@@ -137,6 +96,7 @@ def plot_header(head_ax, s, fs=10):
     """
     font = fm.FontProperties()
     font.set_family('monospace')
+    font.set_size(fs-2)
     eblist = []
     for i in range(0, 3200, 80):
         eblist.append(s[i:i + 80])
@@ -144,11 +104,12 @@ def plot_header(head_ax, s, fs=10):
     buff = 1.0
     for i, line in enumerate(eblist):
         head_ax.text(buff, 40 - i * 0.95 - buff, line[4:], ha='left', va='top',
-                     rotation=0, fontsize=fs-4, fontproperties=font)
+                     rotation=0, fontproperties=font)
     head_ax.set_xticks([])
     head_ax.set_yticks([])
 
     return head_ax
+
 
 def plot_trace_info(trhead_ax, blurb, fs=10):
     """
@@ -162,8 +123,11 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     trhead_ax.text(20, 20, blurb, ha='center', va='center', rotation=0, fontsize=fs-4, fontproperties=font)
     return trhead_ax
 
-# Do a histogram
+
 def plot_histogram(hist_ax, data, fs=10):
+    """
+    Plot a histogram of amplitude values.
+    """
     largest = max(np.amax(data), abs(np.amin(data)))
     clip_val = np.percentile(data, 99.0)
     hist_ax.patch.set_alpha(0.5)
@@ -181,7 +145,6 @@ def main(target, cfg):
     """
     Puts everything together.
     """
-
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
@@ -224,17 +187,44 @@ def main(target, cfg):
     Notice.ok("Read data successfully")
 
     #####################################################################
-    # 
+    #
     # MAKE PLOT
-    # 
+    #
     #####################################################################
     Notice.hr_header("Plotting")
 
-    w = ntraces / cfg['tpi']
-    h = cfg['ips'] * (tend - tstart)/1000
-    
+    ##################################
+    # Plot size parameters
+    # Some constants
+    wsl = 6  # Width of sidelabel
+    mih = 8  # Minimum plot height
+    fhh = 5  # File header height
+
+    # Width is determined by tpi, plus a constant for the sidelabel, plus 1 in
+    w = wsl + (ntraces / cfg['tpi']) + 1
+    # Height is given by ips, but with a minimum of 6 inches, plus 1 in
+    h = max(mih, cfg['ips'] * (tend - tstart)/1000) + 1
+
+    # One inch in height and width
+    oih = 1/h
+    oiw = 1/w
+
+    # Margins, CSS like
+    m = 0.5
+    mt, mr, mb, ml = m*oih, 2*m*oiw, m*oih, 2*m*oiw
+
+    # Position of divider between seismic and sidelabel
+    col2 = 1 - (wsl / w)
+    wsd = col2 - 0.02  # Width of seismic data
+    ssl = col2 + 0.02  # Start of sidelabel
+
+    # Set the fontsize
+    fs = cfg['fontsize']
+
+    ##################################
+    # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
-    ax = fig.add_axes([0.05, 0.1, 0.7, 0.8])
+    ax = fig.add_axes([ml, mb, wsd, (1-mb-mt)])
     par1 = ax.twiny()
     par2 = ax.twiny()
 
@@ -244,8 +234,8 @@ def main(target, cfg):
     par2.spines["top"].set_position(("axes", 1.2))
 
     # Having been created by twiny, par2 has its frame off, so the line of its
-    # detached spine is invisible.  First, activate the frame but make the patch
-    # and spines invisible.
+    # detached spine is invisible.  First, activate the frame but make the
+    # patch and spines invisible.
     par2 = make_patch_spines_invisible(par2)
 
     # Second, show the right spine.
@@ -253,7 +243,6 @@ def main(target, cfg):
 
     # p2 = par1.plot(ens, np.zeros_like(ens))
 
-    fs = cfg['fontsize']
     par1.set_xlabel("CDP number", fontsize=fs-2)
     par2.set_xlabel("source elevation", fontsize=fs-2)
 
@@ -264,7 +253,7 @@ def main(target, cfg):
                            line_extents['last_trace'],
                            line_extents['end_time'],
                            line_extents['start_time']),
-                   aspect = aspect
+                   aspect=aspect
                    )
 
     # Decorate the seismic axes
@@ -275,7 +264,7 @@ def main(target, cfg):
 
     # Plot text header.
     s = str(section.textual_file_header)[2:-1]
-    head_ax = fig.add_axes([0.760, 0.55, 0.225, 0.35], axisbg='w')
+    head_ax = fig.add_axes([ssl, 1-(mb + fhh*oih), 1-(ml+ssl), fhh*oih])
     head_ax = plot_header(head_ax, s, fs)
 
     # Plot blurb.
@@ -284,11 +273,13 @@ def main(target, cfg):
     # trhead_ax = plot_trace_info(trhead_ax, blurb, fs)
 
     # Plot histogram.
-    hist_ax = fig.add_axes([0.79, 0.25, 0.18, 0.10], axisbg='w')
+    xhist = ssl + 0.02
+    whist = 1 - (ml+ssl) - 2*0.02
+    hist_ax = fig.add_axes([xhist, 0.25, whist, 0.1])
     hist_ax = plot_histogram(hist_ax, data, fs)
 
     # Plot spectrum.
-    spec_ax = fig.add_axes([0.79, 0.1, 0.18, 0.1], axisbg='w')
+    spec_ax = fig.add_axes([xhist, 0.1, whist, 0.1])
     spec_ax = plot_spectrum(spec_ax, data, dt, fs)
 
     # Save figure.
