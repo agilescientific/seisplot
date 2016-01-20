@@ -17,5 +17,12 @@ gain: 1
 # Fontsize
 fontsize: 10
 
-# Opacity, 0 (transparent) to 1 (black)
+# Wiggle fill: RGB, 0-255, opacity: 0-1
+colour: 
+  - 0
+  - 0
+  - 0
 opacity: 0.5
+
+# Wiggle plot lineweight
+lineweight: 0.2

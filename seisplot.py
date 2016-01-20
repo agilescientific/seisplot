@@ -9,6 +9,7 @@ Simple seismic plotter.
 # Import standard libraries.
 import argparse
 import os
+import time
 
 # Import 3rd party.
 import yaml
@@ -30,21 +31,35 @@ from utils import add_subplot_axes
 #
 #####################################################################
 
-def wiggle_plot(ax, data, tbase, ntraces, skip=1, perc=98.0, gain=1.0, alpha=0.5):
+def wiggle_plot(ax, data, tbase, ntraces,
+                skip=1,
+                perc=98.0,
+                gain=1.0,
+                rgb=(0, 0, 0),
+                alpha=0.5,
+                lw=0.2):
     """
     Plots wiggle traces of seismic data. Skip=1, every trace, skip=2, every
     second trace, etc.
     """
+    rgba = list(rgb) + [alpha]
     sc = np.percentile(data, perc)  # Normalization factor
     wigdata = data[:, ::skip]
     xpos = np.arange(ntraces)[::skip]
 
     for x, trace in zip(xpos, np.transpose(wigdata)):
-        ax.plot(gain * trace / sc + x, tbase, 'k', lw=0.2)
-        ax.fill_betweenx(tbase,
-                         gain * trace / sc + x,
-                         x2=x, facecolor='k',
-                         alpha=alpha)
+        # Compute high resolution trace for aesthetics.
+        amp = gain * trace / sc + x
+        hypertime = np.linspace(tbase[0], tbase[-1], (10*tbase.size-1)+1)
+        hyperamp = np.interp(hypertime, tbase, amp)
+
+        # Plot the line, then the fill.
+        ax.plot(hyperamp, hypertime, 'k', lw=lw)
+        ax.fill_betweenx(hypertime, hyperamp, x,
+                         where=hyperamp > x,
+                         facecolor=rgba,
+                         lw=0,
+                         )
     return ax
 
 
@@ -74,10 +89,10 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
         colorbar_ax.text(0.5, -0.1, '%3.0f' % mi,
                          transform=colorbar_ax.transAxes,
                          horizontalalignment='center', verticalalignment='top',
-                         fontsize=fs - 3)
+                         fontsize=fs-3)
         colorbar_ax.text(0.5, 1.1, '%3.0f' % ma, transform=colorbar_ax.transAxes,
                          horizontalalignment='center',
-                         fontsize=fs - 3)
+                         fontsize=fs-3)
     else:
         colorbar_ax.text(0.5, 0.9, "+",
                          transform=colorbar_ax.transAxes,
@@ -167,6 +182,8 @@ def main(target, cfg):
     """
     Puts everything together.
     """
+    t0 = time.time()
+
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
@@ -199,7 +216,9 @@ def main(target, cfg):
     Notice.info("max_val    {}".format(np.amax(data)))
     Notice.info("min_val    {}".format(np.amin(data)))
     Notice.info("clip_val   {}".format(clip_val))
-    Notice.ok("Read data successfully")
+
+    t1 = time.time()
+    Notice.ok("Read data successfully in {:.1f} s".format(t1-t0))
 
     #####################################################################
     #
@@ -244,10 +263,12 @@ def main(target, cfg):
                      ntraces,
                      skip=cfg['skip'],
                      gain=cfg['gain'],
-                     alpha=cfg['opacity']
+                     rgb=cfg['colour'],
+                     alpha=cfg['opacity'],
+                     lw=cfg['lineweight']
                      )
 
-    ax = decorate_seismic(ax, fs)
+    ax = decorate_seismic(ax, ntraces, fs)
 
     # Plot text header.
     s = str(section.textual_file_header)[2:-1]
@@ -267,12 +288,27 @@ def main(target, cfg):
     spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
     spec_ax = plot_spectrum(spec_ax, data, dt, fs)
 
-    # Save figure.
-    stem, _ = os.path.splitext(target)
-    fig.savefig(stem)
+    t2 = time.time()
+    Notice.ok("Built plot in {:.1f} s".format(t2-t1))
 
-    Notice.ok("Saved image file {}".format(stem+'.png'))
-    Notice.hr_header("Done")
+    #####################################################################
+    #
+    # SAVE FILE
+    #
+    #####################################################################
+    Notice.hr_header("Saving")
+    s = "Saved image file {} in {:.1f} s"
+    if cfg['outfile']:
+        fig.savefig(cfg['outfile'])
+        t3 = time.time()
+        Notice.ok(s.format(cfg['outfile'], t3-t2))
+    else:
+        stem, _ = os.path.splitext(target)
+        fig.savefig(stem)
+        t3 = time.time()
+        Notice.ok(s.format(stem+'.png', t3-t2))
+
+    return
 
 
 if __name__ == "__main__":
@@ -290,6 +326,12 @@ if __name__ == "__main__":
                         type=str,
                         nargs='?',
                         help='The path to a SEGY file.')
+    parser.add_argument('-o', '--out',
+                        metavar='Output file',
+                        type=str,
+                        nargs='?',
+                        default='',
+                        help='The path to an output file.')
     args = parser.parse_args()
     target = args.filename
     with args.config as f:
@@ -297,4 +339,6 @@ if __name__ == "__main__":
     Notice.hr_header("Initializing")
     Notice.info("Filename   {}".format(target))
     Notice.info("Config     {}".format(args.config.name))
+    cfg['outfile'] = args.out
     main(target, cfg)
+    Notice.hr_header("Done")
