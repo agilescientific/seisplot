@@ -2,9 +2,9 @@
 # config.yaml
 # Configuration file for seisplot.py
 
-tpi: 100  #  Traces per inch   (less -> bigger plot)
+tpi: 50  #  Traces per inch   (less -> bigger plot)
 ips: 2  #  Inches per second (more -> bigger plot)
-skip: 3  # wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
+skip: 2  # wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
 gain: 1  # multiplication factor for wiggles 
 top_label: ens
 bot_label: trace_sequence_number_within_line
