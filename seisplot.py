@@ -17,8 +17,7 @@ from scipy import fft
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.font_manager as fm
-from matplotlib.backends.backend_pdf import PdfPages
-
+import matplotlib.ticker as mtick
 from obspy.segy.segy import readSEGY
 
 # Import our stuff.
@@ -48,15 +47,16 @@ def wigplot(ax, data, tbase, ntraces, skip=1, perc=98.0, gain=1.0):
     return ax
 
 
-def decorate_seismic(ax, fs=10):
+def decorate_seismic(ax, tickfmt, fs):
     """
     Add various things to the seismic plot.
     """
     ax.set_ylabel('Two-way time [ms]', fontsize=fs-2)
     ax.set_xlabel('Trace no.', fontsize=fs - 2)
     ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
-    # par1.set_xticklabels(par1.get_xticks(), fontsize=fs - 2)
     ax.set_yticklabels(ax.get_yticks(), fontsize=fs - 2)
+    ax.xaxis.set_major_formatter(tickfmt)
+    ax.yaxis.set_major_formatter(tickfmt)
     ax.grid()
     return ax
 
@@ -148,9 +148,8 @@ def plot_histogram(hist_ax, data, fs=10):
     largest = max(np.amax(data), abs(np.amin(data)))
     clip_val = np.percentile(data, 99.0)
     hist_ax.patch.set_alpha(0.5)
-    #hist_ax.patch.set_lineweight(0)
-    hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
-                 alpha=0.5, color=['black'], lw=0)
+    hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)),
+                 alpha=0.5, color=['black'], lw=0.1)
     hist_ax.set_xlim(-clip_val, clip_val)
     hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
     hist_ax.set_xlabel('amplitude', fontsize=fs - 4)
@@ -167,13 +166,14 @@ def main(target, cfg):
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
-    elev, esp, ens = [], [], []  # energy source point number
+    elev, esp, ens, tsq = [], [], [], []  # energy source point number
     for i, trace in enumerate(section.traces):
         nsamples = trace.header.number_of_samples_in_this_trace
         dt = trace.header.sample_interval_in_ms_for_this_trace
         elev.append(trace.header.receiver_group_elevation)
         esp.append(trace.header.energy_source_point_number)
         ens.append(trace.header.ensemble_number)
+        tsq.append(trace.header.trace_sequence_number_within_line)
 
     ntraces = len(section.traces)
     tbase = 0.001 * np.arange(0, nsamples * dt, dt)
@@ -212,7 +212,7 @@ def main(target, cfg):
     # Plot size parameters
     # Some constants
     wsl = 6  # Width of sidelabel
-    mih = 8  # Minimum plot height
+    mih = 10  # Minimum plot height
     fhh = 5  # File header height
     m = 0.5  # margin in inches
 
@@ -237,31 +237,32 @@ def main(target, cfg):
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
     ax = fig.add_axes([ml / w, mb / h, wsd / w, (h - mb - mt) / h])
-    # par1 = ax.twiny()
+
+    # make parasitic axes for labeling CDP number 
+    par1 = ax.twiny()
     # par2 = ax.twiny()
 
     # Offset the top spine of par2.  The ticks and label have already been
     # placed on the top by twiny above.
     # fig.subplots_adjust(top=0.75)
-    # par2.spines["top"].set_position(("axes", 1.2))
+    par1.spines["top"].set_position(("axes", 1.0))
 
     # Having been created by twiny, par2 has its frame off, so the line of its
     # detached spine is invisible.  First, activate the frame but make the
     # patch and spines invisible.
     # par2 = make_patch_spines_invisible(par2)
 
-    # Second, show the right spine.
+    # Second, show the top spine.
     # par2.spines["top"].set_visible(True)
-
-    # p2 = par1.plot(ens, np.zeros_like(ens))
-
-    # par1.set_xlabel("CDP number", fontsize=fs-2)
-    # par2.set_xlabel("source elevation", fontsize=fs-2)
-
+    tickfmt = mtick.FormatStrFormatter('%.0f')
+    par1.plot(ens, np.zeros_like(ens))
+    par1.set_xlabel("CDP number", fontsize=fs - 2)
+    par1.set_xticklabels(par1.get_xticks(), fontsize=fs - 2)
+    par1.xaxis.set_major_formatter(tickfmt)
     ax = wigplot(ax, data, tbase, ntraces, skip=cfg['skip'], gain=cfg['gain'])
     ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim([0, ntraces])
-    ax = decorate_seismic(ax, fs)
+    ax = decorate_seismic(ax, tickfmt, fs)
 
     if False:  # imshow option (currently broken)
         im = ax.imshow(data, cmap='Greys', origin='upper',
