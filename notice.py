@@ -35,7 +35,7 @@ Welcome to
 └─┐├┤ │└─┐├─┘│  │ │ │ 
 └─┘└─┘┴└─┘┴  ┴─┘└─┘ ┴ 
              Good luck"""
-        return cls(logo, 'WARNING')
+        return cls(logo, 'FAIL')
 
     @classmethod
     def warning(cls, string, hold=False):
