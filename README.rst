@@ -21,3 +21,5 @@ Edit ``config.yaml`` to meet your requirements.
 Run the script from the command line, for example::
 
     python seisplot.py </path/to/infile.segy> --config config.yaml --out /path/to/result.pdf
+
+.. image:: https://dl.dropboxusercontent.com/u/14965965/31_81_PR.png
