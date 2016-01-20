@@ -9,21 +9,21 @@ Simple seismic plotter.
 # Import standard libraries.
 import argparse
 import os
+import time
 
 # Import 3rd party.
 import yaml
 import numpy as np
 from scipy import fft
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import matplotlib.font_manager as fm
 import matplotlib.ticker as mtick
+
 from obspy.segy.segy import readSEGY
 
 # Import our stuff.
 from notice import Notice
 from utils import add_subplot_axes
-from utils import make_patch_spines_invisible
 
 
 #####################################################################
@@ -32,25 +32,45 @@ from utils import make_patch_spines_invisible
 #
 #####################################################################
 
-def wigplot(ax, data, tbase, ntraces, skip=1, perc=98.0, gain=1.0):
+def wiggle_plot(ax, data, tbase, ntraces,
+                skip=1,
+                perc=98.0,
+                gain=1.0,
+                rgb=(0, 0, 0),
+                alpha=0.5,
+                lw=0.2):
     """
-    plots wiggle traces of seismic data
-    skip = 1, every trace, skip = 2, every second trace, etc.
+    Plots wiggle traces of seismic data. Skip=1, every trace, skip=2, every
+    second trace, etc.
     """
-    sc = np.percentile(data, perc)  # normalization factor
+    rgba = list(rgb) + [alpha]
+    sc = np.percentile(data, perc)  # Normalization factor
     wigdata = data[:, ::skip]
     xpos = np.arange(ntraces)[::skip]
 
     for x, trace in zip(xpos, np.transpose(wigdata)):
-        ax.plot(gain * trace / sc + x, tbase, 'k', lw=0.2)
-        ax.fill_betweenx(tbase, gain * trace / sc + x, x2=x, facecolor='k', alpha=0.2)
+        # Compute high resolution trace for aesthetics.
+        amp = gain * trace / sc + x
+        hypertime = np.linspace(tbase[0], tbase[-1], (10*tbase.size-1)+1)
+        hyperamp = np.interp(hypertime, tbase, amp)
+
+        # Plot the line, then the fill.
+        ax.plot(hyperamp, hypertime, 'k', lw=lw)
+        ax.fill_betweenx(hypertime, hyperamp, x,
+                         where=hyperamp > x,
+                         facecolor=rgba,
+                         lw=0,
+                         )
     return ax
 
 
-def decorate_seismic(ax, tickfmt, fs):
+
+def decorate_seismic(ax, ntraces, tickfmt, fs=10):
     """
     Add various things to the seismic plot.
     """
+    ax.set_ylim(ax.get_ylim()[::-1])
+    ax.set_xlim([0, ntraces])
     ax.set_ylabel('Two-way time [ms]', fontsize=fs-2)
     ax.set_xlabel('Trace no.', fontsize=fs - 2)
     ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
@@ -72,10 +92,10 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
         colorbar_ax.text(0.5, -0.1, '%3.0f' % mi,
                          transform=colorbar_ax.transAxes,
                          horizontalalignment='center', verticalalignment='top',
-                         fontsize=fs - 3)
+                         fontsize=fs-3)
         colorbar_ax.text(0.5, 1.1, '%3.0f' % ma, transform=colorbar_ax.transAxes,
                          horizontalalignment='center',
-                         fontsize=fs - 3)
+                         fontsize=fs-3)
     else:
         colorbar_ax.text(0.5, 0.9, "+",
                          transform=colorbar_ax.transAxes,
@@ -94,9 +114,11 @@ def plot_spectrum(spec_ax, data, dt, fs=10):
     """
     S = abs(fft(data[:, 1]))
     faxis = np.fft.fftfreq(len(data[:, 1]), d=dt/10**6)
+    x = faxis[:len(faxis)//4]
+    y = np.log10(S[0:len(faxis)//4])
 
     spec_ax.patch.set_alpha(0.5)
-    spec_ax.plot(faxis[:len(faxis)//4], np.log10(S[0:len(faxis)//4]), 'k', lw=2, alpha=0.5)
+    spec_ax.fill_between(x, y, 0, lw=0, facecolor='k', alpha=0.5)
     spec_ax.set_xlabel('frequency [Hz]', fontsize=fs - 4)
     spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fs - 4)
     spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fs - 4)
@@ -148,8 +170,10 @@ def plot_histogram(hist_ax, data, fs=10):
     largest = max(np.amax(data), abs(np.amin(data)))
     clip_val = np.percentile(data, 99.0)
     hist_ax.patch.set_alpha(0.5)
-    hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)),
-                 alpha=0.5, color=['black'], lw=0.1)
+
+    hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
+                 alpha=0.5, color=['black'], lw=0)
+
     hist_ax.set_xlim(-clip_val, clip_val)
     hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
     hist_ax.set_xlabel('amplitude', fontsize=fs - 4)
@@ -160,11 +184,12 @@ def plot_histogram(hist_ax, data, fs=10):
 
 
 def plot_title(title_ax, title, fs):
+    """
+    Add a title.
+    """
     title_ax.text(1.0, 0.0, title, size=fs,
                   horizontalalignment='right',
                   verticalalignment='bottom')
-    # title_ax.set_xticks([])
-    # title_ax.set_yticks([])
     title_ax.axis('off')
     return title_ax
 
@@ -173,30 +198,29 @@ def main(target, cfg):
     """
     Puts everything together.
     """
+    t0 = time.time()
+
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
-    elev, esp, ens, tsq = [], [], [], []  # energy source point number
-    for i, trace in enumerate(section.traces):
-        nsamples = trace.header.number_of_samples_in_this_trace
-        dt = trace.header.sample_interval_in_ms_for_this_trace
-        elev.append(trace.header.receiver_group_elevation)
-        esp.append(trace.header.energy_source_point_number)
-        ens.append(trace.header.ensemble_number)
-        tsq.append(trace.header.trace_sequence_number_within_line)
-
+    # Calculate some things
+    nsamples = section.traces[0].header.number_of_samples_in_this_trace
+    dt = section.traces[0].header.sample_interval_in_ms_for_this_trace
     ntraces = len(section.traces)
     tbase = 0.001 * np.arange(0, nsamples * dt, dt)
     tstart = 0
     tend = np.amax(tbase)
-    # aspect = float(ntraces) / float(nsamples)
     wsd = ntraces / cfg['tpi']
-    hd = cfg['ips'] * (np.amax(tbase) - np.amin(tbase))/1000
-    aspect = wsd / hd
+
     # Build the data container
+    elev, esp, ens, tsq = [], [], [], []  # energy source point number
     data = np.zeros((nsamples, ntraces))
     for i, trace in enumerate(section.traces):
         data[:, i] = trace.data
+        elev.append(trace.header.receiver_group_elevation)
+        esp.append(trace.header.energy_source_point_number)
+        ens.append(trace.header.ensemble_number)
+        tsq.append(trace.header.trace_sequence_number_within_line)
 
     clip_val = np.percentile(data, 99.0)
 
@@ -209,7 +233,9 @@ def main(target, cfg):
     Notice.info("max_val    {}".format(np.amax(data)))
     Notice.info("min_val    {}".format(np.amin(data)))
     Notice.info("clip_val   {}".format(clip_val))
-    Notice.ok("Read data successfully")
+
+    t1 = time.time()
+    Notice.ok("Read data successfully in {:.1f} s".format(t1-t0))
 
     #####################################################################
     #
@@ -226,72 +252,49 @@ def main(target, cfg):
     fhh = 5  # File header height
     m = 0.5  # margin in inches
 
-    # One inch in height and width
-    # oih = 1/h
-    # oiw = 1/w
-
     # Margins, CSS like
     mt, mb, ml, mr = m, m, 2 * m, 2 * m
     mm = mr / 2  # padded margin between seismic and label
 
     # Width is determined by tpi, plus a constant for the sidelabel, plus 1 in
     w = ml + wsd + wsl + mr + mm
+
     # Height is given by ips, but with a minimum of 8 inches, plus 1 in
     h = max(mih, cfg['ips'] * (np.amax(tbase) - np.amin(tbase)) / 1000 + mt + mb)
-    # start of side label (ratio)
-    ssl = (ml + wsd + mm) / w
-    # Set the fontsize
+
+    # More settings
+    ssl = (ml + wsd + mm) / w  # Start of side label (ratio)
     fs = cfg['fontsize']
+
+    Notice.info("Width of plot   {} in".format(w))
+    Notice.info("Height of plot  {} in".format(h))
 
     ##################################
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
     ax = fig.add_axes([ml / w, mb / h, wsd / w, (h - mb - mt) / h])
 
-    # make parasitic axes for labeling CDP number 
+    # make parasitic axes for labeling CDP number
     par1 = ax.twiny()
-    # par2 = ax.twiny()
-
-    # Offset the top spine of par2.  The ticks and label have already been
-    # placed on the top by twiny above.
-    # fig.subplots_adjust(top=0.75)
     par1.spines["top"].set_position(("axes", 1.0))
-
-    # Having been created by twiny, par2 has its frame off, so the line of its
-    # detached spine is invisible.  First, activate the frame but make the
-    # patch and spines invisible.
-    # par2 = make_patch_spines_invisible(par2)
-
-    # Second, show the top spine.
-    # par2.spines["top"].set_visible(True)
     tickfmt = mtick.FormatStrFormatter('%.0f')
     par1.plot(ens, np.zeros_like(ens))
-    par1.set_xlabel("CDP number", fontsize=fs - 2)
-    par1.set_xticklabels(par1.get_xticks(), fontsize=fs - 2)
+    par1.set_xlabel("CDP number", fontsize=fs-2)
+    par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
-    ax = wigplot(ax, data, tbase, ntraces, skip=cfg['skip'], gain=cfg['gain'])
-    ax.set_ylim(ax.get_ylim()[::-1])
-    ax.set_xlim([0, ntraces])
-    ax = decorate_seismic(ax, tickfmt, fs)
 
-    if False:  # imshow option (currently broken)
-        im = ax.imshow(data, cmap='Greys', origin='upper',
-                       vmin=-clip_val,
-                       vmax=clip_val,
-                       # extent=(line_extents['first_trace'],
-                       #        line_extents['last_trace'],
-                       #        line_extents['end_time'],
-                       #       line_extents['start_time'])#,
-                       aspect=hd / wd
-                       )
-        # Decorate the seismic axes
-        ax = decorate_seismic(ax, fs)
+    ax = wiggle_plot(ax,
+                     data,
+                     tbase,
+                     ntraces,
+                     skip=cfg['skip'],
+                     gain=cfg['gain'],
+                     rgb=cfg['colour'],
+                     alpha=cfg['opacity'],
+                     lw=cfg['lineweight']
+                     )
 
-        # Plot colorbar.
-        # fig = plot_colourbar(fig, ax, im, data, fs)
-
-    print ('width of plot (inches)', w)
-    print ('height of plot (inches)', h)
+    ax = decorate_seismic(ax, ntraces, tickfmt, fs)
 
     # Plot title
     title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
@@ -302,11 +305,6 @@ def main(target, cfg):
     start = (h - mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
     head_ax = plot_header(head_ax, s, fs)
-
-    # Plot blurb.
-    # blurb = "select trace header info goes here \n and here \n and here"
-    # trhead_ax = fig.add_axes([0.760, 0.37, 0.225, 0.165], axisbg='w')
-    # trhead_ax = plot_trace_info(trhead_ax, blurb, fs)
 
     # Plot histogram.
     pad = 0.05
@@ -320,12 +318,27 @@ def main(target, cfg):
     spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
     spec_ax = plot_spectrum(spec_ax, data, dt, fs)
 
-    # Save figure.
-    stem, _ = os.path.splitext(target)
-    fig.savefig(stem)
+    t2 = time.time()
+    Notice.ok("Built plot in {:.1f} s".format(t2-t1))
 
-    Notice.ok("Saved image file {}".format(stem+'.png'))
-    Notice.hr_header("Done")
+    #####################################################################
+    #
+    # SAVE FILE
+    #
+    #####################################################################
+    Notice.hr_header("Saving")
+    s = "Saved image file {} in {:.1f} s"
+    if cfg['outfile']:
+        fig.savefig(cfg['outfile'])
+        t3 = time.time()
+        Notice.ok(s.format(cfg['outfile'], t3-t2))
+    else:
+        stem, _ = os.path.splitext(target)
+        fig.savefig(stem)
+        t3 = time.time()
+        Notice.ok(s.format(stem+'.png', t3-t2))
+
+    return
 
 
 if __name__ == "__main__":
@@ -343,6 +356,12 @@ if __name__ == "__main__":
                         type=str,
                         nargs='?',
                         help='The path to a SEGY file.')
+    parser.add_argument('-o', '--out',
+                        metavar='Output file',
+                        type=str,
+                        nargs='?',
+                        default='',
+                        help='The path to an output file.')
     args = parser.parse_args()
     target = args.filename
     with args.config as f:
@@ -350,4 +369,6 @@ if __name__ == "__main__":
     Notice.hr_header("Initializing")
     Notice.info("Filename   {}".format(target))
     Notice.info("Config     {}".format(args.config.name))
+    cfg['outfile'] = args.out
     main(target, cfg)
+    Notice.hr_header("Done")

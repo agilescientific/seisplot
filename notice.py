@@ -30,12 +30,12 @@ class Notice(object):
     def title(cls):
         """Makes a logo."""
         logo = """
-Welcome to
-┌─┐┌─┐┬┌─┐┌─┐┬  ┌─┐┌┬┐
-└─┐├┤ │└─┐├─┘│  │ │ │ 
-└─┘└─┘┴└─┘┴  ┴─┘└─┘ ┴ 
-             Good luck"""
-        return cls(logo, 'WARNING')
+  Welcome to
+  ┌─┐┌─┐┬┌─┐┌─┐┬  ┌─┐┌┬┐
+  └─┐├┤ │└─┐├─┘│  │ │ │
+  └─┘└─┘┴└─┘┴  ┴─┘└─┘ ┴
+               Good luck"""
+        return cls(logo, 'FAIL')
 
     @classmethod
     def warning(cls, string, hold=False):

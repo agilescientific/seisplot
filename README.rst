@@ -14,8 +14,8 @@ Then install some more dependencies::
     conda install nose
     conda install pyyaml
 
-Then edit `config.yaml` to meet your requirements.
+Then edit ``config.yaml`` to meet your requirements.
 
-Run the script from the command line::
+Run the script from the command line, for example::
 
-    python seisplot.py --config config.yaml <infile.segy>
+    python seisplot.py <infile.segy> --config config.yaml --out result.pdf

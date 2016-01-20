@@ -2,10 +2,27 @@
 # config.yaml
 # Configuration file for seisplot.py
 
-tpi: 50  #  Traces per inch   (less -> bigger plot)
-ips: 2  #  Inches per second (more -> bigger plot)
-skip: 2  # wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
-gain: 1  # multiplication factor for wiggles 
-top_label: ens
-bot_label: trace_sequence_number_within_line
+# Traces per inch   (less -> bigger plot)
+tpi: 50
+
+# Inches per second (more -> bigger plot)
+ips: 2
+
+# Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
+skip: 2
+
+# Multiplication factor for amplitudes 
+gain: 1 
+
+# Fontsize
 fontsize: 10
+
+# Wiggle fill: RGB, 0-255, opacity: 0-1
+colour: 
+  - 0
+  - 0
+  - 0
+opacity: 0.5
+
+# Wiggle plot lineweight
+lineweight: 0.2
