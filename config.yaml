@@ -4,4 +4,6 @@
 
 tpi: 50  #  Traces per inch   (less -> bigger plot)
 ips: 2  #  Inches per second (more -> bigger plot)
-fontsize: 8
+skip: 2  # wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
+gain: 1  # multiplication factor for wiggles 
+fontsize: 10
