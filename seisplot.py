@@ -159,6 +159,16 @@ def plot_histogram(hist_ax, data, fs=10):
     return hist_ax
 
 
+def plot_title(title_ax, title, fs):
+    title_ax.text(1.0, 0.0, title, size=fs,
+                  horizontalalignment='right',
+                  verticalalignment='bottom')
+    # title_ax.set_xticks([])
+    # title_ax.set_yticks([])
+    title_ax.axis('off')
+    return title_ax
+
+
 def main(target, cfg):
     """
     Puts everything together.
@@ -282,6 +292,10 @@ def main(target, cfg):
 
     print ('width of plot (inches)', w)
     print ('height of plot (inches)', h)
+
+    # Plot title
+    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
+    title_ax = plot_title(title_ax, target, fs=fs)
 
     # Plot text header.
     s = str(section.textual_file_header)[2:-1]
