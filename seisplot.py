@@ -64,12 +64,11 @@ def wiggle_plot(ax, data, tbase, ntraces,
     return ax
 
 
-
 def decorate_seismic(ax, ntraces, tickfmt, fs=10):
     """
     Add various things to the seismic plot.
     """
-    ax.set_ylim(ax.get_ylim()[::-1])
+    # ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim([0, ntraces])
     ax.set_ylabel('Two-way time [ms]', fontsize=fs-2)
     ax.set_xlabel('Trace no.', fontsize=fs - 2)
@@ -283,18 +282,33 @@ def main(target, cfg):
     par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
 
-    ax = wiggle_plot(ax,
-                     data,
-                     tbase,
-                     ntraces,
-                     skip=cfg['skip'],
-                     gain=cfg['gain'],
-                     rgb=cfg['colour'],
-                     alpha=cfg['opacity'],
-                     lw=cfg['lineweight']
-                     )
+    wiggle_display = False
+    variable_display = True
 
-    ax = decorate_seismic(ax, ntraces, tickfmt, fs)
+    # aspect = nsamples * wsd / (0.001 * dt * ntraces * (h - mb - mt))
+
+    if variable_display:
+        im = ax.imshow(data,
+                  cmap='Greys',
+                  clim=[-1500, 1500],
+                  extent=[0, ntraces, tbase[-1], tbase[0]],
+                  aspect='auto'
+                  )
+        ax = decorate_seismic(ax, ntraces, tickfmt, fs)
+        plot_colourbar(fig, ax, im, data, mima=False, fs=10)
+
+    if wiggle_display:
+        ax = wiggle_plot(ax,
+                         data,
+                         tbase,
+                         ntraces,
+                         skip=cfg['skip'],
+                         gain=cfg['gain'],
+                         rgb=cfg['colour'],
+                         alpha=cfg['opacity'],
+                         lw=cfg['lineweight']
+                         )
+        ax = decorate_seismic(ax, ntraces, tickfmt, fs)
 
     # Plot title
     title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
