@@ -18,6 +18,8 @@ from scipy import fft
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import matplotlib.ticker as mtick
+from matplotlib import cm
+from matplotlib.colors import makeMappingArray
 
 from obspy.segy.segy import readSEGY
 
@@ -64,7 +66,7 @@ def wiggle_plot(ax, data, tbase, ntraces,
     return ax
 
 
-def decorate_seismic(ax, ntraces, tickfmt, fs=10):
+def decorate_seismic(ax, ntraces, tickfmt, cfg, fs=10):
     """
     Add various things to the seismic plot.
     """
@@ -76,7 +78,12 @@ def decorate_seismic(ax, ntraces, tickfmt, fs=10):
     ax.set_yticklabels(ax.get_yticks(), fontsize=fs - 2)
     ax.xaxis.set_major_formatter(tickfmt)
     ax.yaxis.set_major_formatter(tickfmt)
-    ax.grid()
+    if cfg['seis_grid'] == 'on':
+        pass
+        # ax.grid()
+    if cfg['seis_grid'] == 'off':
+        pass
+        # ax.grid('off')
     return ax
 
 
@@ -107,7 +114,7 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
     return fig
 
 
-def plot_spectrum(spec_ax, data, dt, fs=10):
+def plot_spectrum(spec_ax, data, dt, tickfmt, fs=10):
     """
     Plot a power spectrum.
     """
@@ -119,10 +126,16 @@ def plot_spectrum(spec_ax, data, dt, fs=10):
     spec_ax.patch.set_alpha(0.5)
     spec_ax.fill_between(x, y, 0, lw=0, facecolor='k', alpha=0.5)
     spec_ax.set_xlabel('frequency [Hz]', fontsize=fs - 4)
+    spec_ax.set_xlim([0, x.max()])
     spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fs - 4)
     spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fs - 4)
-    spec_ax.set_ylabel('power [dB]', fontsize=fs - 2)
-    spec_ax.set_title('Power spectrum', fontsize=fs - 2)
+    spec_ax.set_ylabel('power [dB]', fontsize=fs - 4)
+    spec_ax.text(.9, .9, 'Power Spectrum',
+                 horizontalalignment='right',
+                 verticalalignment='top',
+                 transform=spec_ax.transAxes, fontsize=fs - 3)
+    spec_ax.yaxis.set_major_formatter(tickfmt)
+    spec_ax.xaxis.set_major_formatter(tickfmt)
     spec_ax.grid('on')
 
     return spec_ax
@@ -162,24 +175,69 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     return trhead_ax
 
 
-def plot_histogram(hist_ax, data, fs=10):
+def plot_histogram(hist_ax, data, tickfmt, fs=10):
     """
     Plot a histogram of amplitude values.
     """
     largest = max(np.amax(data), abs(np.amin(data)))
     clip_val = np.percentile(data, 99.0)
-    hist_ax.patch.set_alpha(0.5)
-
-    hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
-                 alpha=0.5, color=['black'], lw=0)
+    hist_ax.patch.set_alpha(0.0)
+    y, x, _ = hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
+                           alpha=1.0, color='#777777', lw=0)
 
     hist_ax.set_xlim(-clip_val, clip_val)
     hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
     hist_ax.set_xlabel('amplitude', fontsize=fs - 4)
-    hist_ax.set_ylim(hist_ax.get_ylim()[0], hist_ax.get_ylim()[1]),
-    hist_ax.set_yticks([])
-    hist_ax.set_title('Histogram', fontsize=fs - 3)
+    hist_ax.set_ylim([0, y.max()])
+    hist_ax.set_yticks(np.linspace(0, y.max(), 6))
+    a = hist_ax.get_yticks().tolist()  # ytick labels
+    a[0], a[1], a[2], a[3], a[4], a[5] = '0', '20', '40', '60', '80', '100'
+    hist_ax.set_yticklabels(a, fontsize=fs - 4)
+    hist_ax.xaxis.set_major_formatter(tickfmt)
+    hist_ax.text(.9, .9, 'Histogram',
+                 horizontalalignment='right',
+                 verticalalignment='top',
+                 transform=hist_ax.transAxes, fontsize=fs - 3)
+    hist_ax.set_alpha(0)
+    hist_ax.grid()
     return hist_ax
+
+
+def plot_hrz_colorbar(clr_ax, cmap, mima=False):
+    """
+    Puts a horizontal colorbar under / behind histogram
+    """
+    seisbar = cm.get_cmap(cmap)
+    ncolours = 32
+    seis_array = makeMappingArray(ncolours, seisbar)
+    color_arr = seis_array[np.newaxis, :]
+    color_arr = color_arr[:, :, :-1]
+    colour_roll = np.rollaxis(color_arr, 1)
+    colour_roll2 = np.rollaxis(colour_roll, 1)
+    clr_ax.imshow(colour_roll2, extent=[0, ncolours, 0, 1], aspect='auto')
+    clr_ax.set_yticks([])
+    clr_ax.set_xticks([])
+    # annotation
+    # ma, mi = np.amax(data), np.amin(data)
+    if mima:
+        clr_ax.text(0.95, 0.5, '%3.0f' % mi,
+                    transform=clr_ax.transAxes,
+                    horizontalalignment='center', verticalalignment='top',
+                    fontsize=fs-3)
+        clr_ax.text(0.05, 0.5, '%3.0f' % ma, transform=clr_ax.transAxes,
+                    horizontalalignment='center',
+                    fontsize=fs-3)
+    else:
+        clr_ax.text(0.95, 0.5, "+",
+                    transform=clr_ax.transAxes,
+                    ha='right', color='w',
+                    va='center', fontsize=16)
+        clr_ax.text(0.05, 0.5, "-",
+                    transform=clr_ax.transAxes, color='k',
+                    ha='left', va='center', fontsize=16)
+    # clr_ax.set_axis_off()
+
+    return clr_ax
 
 
 def plot_title(title_ax, title, fs):
@@ -289,13 +347,13 @@ def main(target, cfg):
 
     if variable_display:
         im = ax.imshow(data,
-                  cmap='Greys',
-                  clim=[-1500, 1500],
-                  extent=[0, ntraces, tbase[-1], tbase[0]],
-                  aspect='auto'
-                  )
-        ax = decorate_seismic(ax, ntraces, tickfmt, fs)
-        plot_colourbar(fig, ax, im, data, mima=False, fs=10)
+                       cmap=cfg['cmap'],
+                       clim=[-clip_val, clip_val],
+                       extent=[0, ntraces, tbase[-1], tbase[0]],
+                       aspect='auto'
+                       )
+        ax = decorate_seismic(ax, ntraces, tickfmt, cfg, fs)
+        # plot_colourbar(fig, ax, im, data, mima=False, fs=10)
 
     if wiggle_display:
         ax = wiggle_plot(ax,
@@ -308,7 +366,7 @@ def main(target, cfg):
                          alpha=cfg['opacity'],
                          lw=cfg['lineweight']
                          )
-        ax = decorate_seismic(ax, ntraces, tickfmt, fs)
+        ax = decorate_seismic(ax, ntraces, tickfmt, cfg, fs)
 
     # Plot title
     title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
@@ -320,17 +378,23 @@ def main(target, cfg):
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
     head_ax = plot_header(head_ax, s, fs)
 
-    # Plot histogram.
-    pad = 0.05
+    # Params for histogram plot
+    pady, padx = 0.1, 0.05
+    cstrip = 0.025  # color_strip height
     charty = 0.125  # height of chart
-    xhist = (ssl + pad)
-    whist = (1 - ssl - (ml/w)) - 2 * pad
-    hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pad, whist, charty])
-    hist_ax = plot_histogram(hist_ax, data, fs)
+    xhist = (ssl + padx)
+    whist = (1 - ssl - (ml/w)) - 2 * padx
+    # Plot colourbar under histogram
+    clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
+    plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
+
+    # Plot histogram.
+    hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
+    hist_ax = plot_histogram(hist_ax, data, tickfmt, fs)
 
     # Plot spectrum.
     spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
-    spec_ax = plot_spectrum(spec_ax, data, dt, fs)
+    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, fs)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))
