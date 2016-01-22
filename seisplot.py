@@ -53,7 +53,7 @@ def wiggle_plot(ax, data, tbase, ntraces,
     for x, trace in zip(xpos, np.transpose(wigdata)):
         # Compute high resolution trace for aesthetics.
         amp = gain * trace / sc + x
-        hypertime = np.linspace(tbase[0], tbase[-1], (10*tbase.size-1)+1)
+        hypertime = np.linspace(tbase[0], tbase[-1], (10 * tbase.size - 1) + 1)
         hyperamp = np.interp(hypertime, tbase, amp)
 
         # Plot the line, then the fill.
@@ -72,7 +72,7 @@ def decorate_seismic(ax, ntraces, tickfmt, cfg, fs=10):
     """
     # ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim([0, ntraces])
-    ax.set_ylabel('Two-way time [ms]', fontsize=fs-2)
+    ax.set_ylabel('Two-way time [ms]', fontsize=fs - 2)
     ax.set_xlabel('Trace no.', fontsize=fs - 2)
     ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
     ax.set_yticklabels(ax.get_yticks(), fontsize=fs - 2)
@@ -98,10 +98,11 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
         colorbar_ax.text(0.5, -0.1, '%3.0f' % mi,
                          transform=colorbar_ax.transAxes,
                          horizontalalignment='center', verticalalignment='top',
-                         fontsize=fs-3)
-        colorbar_ax.text(0.5, 1.1, '%3.0f' % ma, transform=colorbar_ax.transAxes,
+                         fontsize=fs - 3)
+        colorbar_ax.text(0.5, 1.1, '%3.0f' % ma,
+                         transform=colorbar_ax.transAxes,
                          horizontalalignment='center',
-                         fontsize=fs-3)
+                         fontsize=fs - 3)
     else:
         colorbar_ax.text(0.5, 0.9, "+",
                          transform=colorbar_ax.transAxes,
@@ -114,23 +115,23 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
     return fig
 
 
-def plot_spectrum(spec_ax, data, dt, tickfmt, fs=10):
+def plot_spectrum(spec_ax, data, dt, tickfmt, trace=10, fs=10):
     """
     Plot a power spectrum.
+    w is window length for smoothing filter
     """
-    S = abs(fft(data[:, 1]))
-    faxis = np.fft.fftfreq(len(data[:, 1]), d=dt/10**6)
-    x = faxis[:len(faxis)//4]
-    y = np.log10(S[0:len(faxis)//4])
-
+    S = abs(fft(data[:, trace]))
+    faxis = np.fft.fftfreq(len(data[:, 1]), d=dt / 10 ** 6)
+    x = faxis[:len(faxis) // 4]
+    y = np.sqrt(S[0:len(faxis) // 4])
     spec_ax.patch.set_alpha(0.5)
     spec_ax.fill_between(x, y, 0, lw=0, facecolor='k', alpha=0.5)
     spec_ax.set_xlabel('frequency [Hz]', fontsize=fs - 4)
     spec_ax.set_xlim([0, x.max()])
     spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fs - 4)
     spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fs - 4)
-    spec_ax.set_ylabel('power [dB]', fontsize=fs - 4)
-    spec_ax.text(.9, .9, 'Power Spectrum',
+    spec_ax.set_ylabel('amplitude', fontsize=fs - 4)
+    spec_ax.text(.9, .9, 'Amplitude Spectrum',
                  horizontalalignment='right',
                  verticalalignment='top',
                  transform=spec_ax.transAxes, fontsize=fs - 3)
