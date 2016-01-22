@@ -381,6 +381,7 @@ def main(target, cfg):
                          alpha=cfg['opacity'],
                          lw=cfg['lineweight']
                          )
+        ax.set_ylim(ax.get_ylim()[::-1])
 
     ax = decorate_seismic(ax, ntraces, tickfmt, cfg)
 
@@ -395,14 +396,19 @@ def main(target, cfg):
     head_ax = plot_header(head_ax, s, fs)
 
     # Params for histogram plot
-    pady, padx = 0.1, 0.05
+    pady, padx = 0.1, 0.25 * wsl / w
     cstrip = 0.025  # color_strip height
     charty = 0.125  # height of chart
     xhist = (ssl + padx)
-    whist = (1 - ssl - (ml/w)) - 2 * padx
+    whist = (1 - ssl - (mr/w)) - 2 * padx
+    print(ssl, mr, w, padx)
+    print(xhist, whist)
+    print(w, h)
+    print(mr)
     # Plot colourbar under histogram
-    clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
-    plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
+    if variable_display:
+        clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
+        plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
 
     # Plot histogram.
     hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
