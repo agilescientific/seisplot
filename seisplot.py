@@ -64,7 +64,6 @@ def wiggle_plot(ax, data, tbase, ntraces,
     return ax
 
 
-
 def decorate_seismic(ax, ntraces, tickfmt, fs=10):
     """
     Add various things to the seismic plot.
@@ -129,6 +128,19 @@ def plot_spectrum(spec_ax, data, dt, fs=10):
     return spec_ax
 
 
+def chunk(string, width=80):
+    """
+    Chunks a long string into lines `width` characters long, default 80 chars.
+    If the string is not a multiple of 80 chars, the end is padded with spaces.
+    """
+    lines = int(np.ceil(len(string) / width))
+    result = ''
+    for i in range(lines):
+        line = string[i*width:i*width+width]
+        result += line + (width-len(line))*' ' + '\n'
+    return result
+
+
 def plot_header(head_ax, s, fs=10):
     """
     Plot EBCIDIC header.
@@ -136,14 +148,11 @@ def plot_header(head_ax, s, fs=10):
     font = fm.FontProperties()
     font.set_family('monospace')
     font.set_size(fs-2)
-    eblist = []
-    for i in range(0, 3200, 80):
-        eblist.append(s[i:i + 80])
     head_ax.axis([0, 40, 0, 40])
-    buff = 1.0
-    for i, line in enumerate(eblist):
-        head_ax.text(buff, 40 - i * 0.95 - buff, line[4:], ha='left', va='top',
-                     rotation=0, fontproperties=font)
+    head_ax.text(1, 40 - 1,
+                 chunk(s),
+                 ha='left', va='top',
+                 fontproperties=font)
     head_ax.set_xticks([])
     head_ax.set_yticks([])
 
@@ -203,7 +212,9 @@ def main(target, cfg):
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
-    # Calculate some things
+    # Calculate some things.
+    # NB Getting nsamples and dt from the first trace assumes that all
+    # traces are the same length, which is not a safe assumption in SEGY v2.
     nsamples = section.traces[0].header.number_of_samples_in_this_trace
     dt = section.traces[0].header.sample_interval_in_ms_for_this_trace
     ntraces = len(section.traces)
@@ -212,9 +223,11 @@ def main(target, cfg):
     tend = np.amax(tbase)
     wsd = ntraces / cfg['tpi']
 
-    # Build the data container
-    elev, esp, ens, tsq = [], [], [], []  # energy source point number
-    data = np.zeros((nsamples, ntraces))
+    # Make the data array.
+    data = np.vstack([t.data for t in section.traces]).T
+
+    # Collect some other data. Use a for loop because there are several.
+    elev, esp, ens, tsq = [], [], [], []
     for i, trace in enumerate(section.traces):
         data[:, i] = trace.data
         elev.append(trace.header.receiver_group_elevation)
@@ -301,7 +314,7 @@ def main(target, cfg):
     title_ax = plot_title(title_ax, target, fs=fs)
 
     # Plot text header.
-    s = str(section.textual_file_header)[2:-1]
+    s = section.textual_file_header.decode()
     start = (h - mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
     head_ax = plot_header(head_ax, s, fs)
