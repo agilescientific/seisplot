@@ -290,7 +290,6 @@ def main(target, cfg):
     # Collect some other data. Use a for loop because there are several.
     elev, esp, ens, tsq = [], [], [], []
     for i, trace in enumerate(section.traces):
-        data[:, i] = trace.data
         elev.append(trace.header.receiver_group_elevation)
         esp.append(trace.header.energy_source_point_number)
         ens.append(trace.header.ensemble_number)
