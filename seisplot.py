@@ -66,10 +66,11 @@ def wiggle_plot(ax, data, tbase, ntraces,
     return ax
 
 
-def decorate_seismic(ax, ntraces, tickfmt, cfg, fs=10):
+def decorate_seismic(ax, ntraces, tickfmt, cfg):
     """
     Add various things to the seismic plot.
     """
+    fs = cfg['fontsize']
     # ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim([0, ntraces])
     ax.set_ylabel('Two-way time [ms]', fontsize=fs - 2)
@@ -143,6 +144,19 @@ def plot_spectrum(spec_ax, data, dt, tickfmt, trace=10, fs=10):
     return spec_ax
 
 
+def chunk(string, width=80):
+    """
+    Chunks a long string into lines `width` characters long, default 80 chars.
+    If the string is not a multiple of 80 chars, the end is padded with spaces.
+    """
+    lines = int(np.ceil(len(string) / width))
+    result = ''
+    for i in range(lines):
+        line = string[i*width:i*width+width]
+        result += line + (width-len(line))*' ' + '\n'
+    return result
+
+
 def plot_header(head_ax, s, fs=10):
     """
     Plot EBCIDIC header.
@@ -150,14 +164,11 @@ def plot_header(head_ax, s, fs=10):
     font = fm.FontProperties()
     font.set_family('monospace')
     font.set_size(fs-2)
-    eblist = []
-    for i in range(0, 3200, 80):
-        eblist.append(s[i:i + 80])
     head_ax.axis([0, 40, 0, 40])
-    buff = 1.0
-    for i, line in enumerate(eblist):
-        head_ax.text(buff, 40 - i * 0.95 - buff, line[4:], ha='left', va='top',
-                     rotation=0, fontproperties=font)
+    head_ax.text(1, 40 - 1,
+                 chunk(s),
+                 ha='left', va='top',
+                 fontproperties=font)
     head_ax.set_xticks([])
     head_ax.set_yticks([])
 
@@ -220,14 +231,13 @@ def plot_hrz_colorbar(clr_ax, cmap, mima=False, plusminus=False):
     clr_ax.imshow(colour_roll2, extent=[0, ncolours, 0, 1], aspect='auto')
     clr_ax.set_yticks([])
     clr_ax.set_xticks([])
-    # annotation
-    # ma, mi = np.amax(data), np.amin(data)
+    #ma, mi = np.amax(data), np.amin(data)
     if mima:
-        clr_ax.text(0.95, 0.5, '%3.0f' % mi,
+        clr_ax.text(0.95, 0.5, '{:3.0f}'.format(mi),
                     transform=clr_ax.transAxes,
                     horizontalalignment='center', verticalalignment='top',
                     fontsize=fs - 3)
-        clr_ax.text(0.05, 0.5, '%3.0f' % ma, transform=clr_ax.transAxes,
+        clr_ax.text(0.05, 0.5, '{:3.0f}'.format(ma), transform=clr_ax.transAxes,
                     horizontalalignment='center',
                     fontsize=fs - 3)
     if plusminus:
@@ -263,7 +273,9 @@ def main(target, cfg):
     # Read the file.
     section = readSEGY(target, unpack_headers=True)
 
-    # Calculate some things
+    # Calculate some things.
+    # NB Getting nsamples and dt from the first trace assumes that all
+    # traces are the same length, which is not a safe assumption in SEGY v2.
     nsamples = section.traces[0].header.number_of_samples_in_this_trace
     dt = section.traces[0].header.sample_interval_in_ms_for_this_trace
     ntraces = len(section.traces)
@@ -272,11 +284,12 @@ def main(target, cfg):
     tend = np.amax(tbase)
     wsd = ntraces / cfg['tpi']
 
-    # Build the data container
-    elev, esp, ens, tsq = [], [], [], []  # energy source point number
-    data = np.zeros((nsamples, ntraces))
+    # Make the data array.
+    data = np.vstack([t.data for t in section.traces]).T
+
+    # Collect some other data. Use a for loop because there are several.
+    elev, esp, ens, tsq = [], [], [], []
     for i, trace in enumerate(section.traces):
-        data[:, i] = trace.data
         elev.append(trace.header.receiver_group_elevation)
         esp.append(trace.header.energy_source_point_number)
         ens.append(trace.header.ensemble_number)
@@ -355,7 +368,6 @@ def main(target, cfg):
                        extent=[0, ntraces, tbase[-1], tbase[0]],
                        aspect='auto'
                        )
-        ax = decorate_seismic(ax, ntraces, tickfmt, cfg, fs)
         # plot_colourbar(fig, ax, im, data, mima=False, fs=10)
 
     if wiggle_display:
@@ -369,14 +381,15 @@ def main(target, cfg):
                          alpha=cfg['opacity'],
                          lw=cfg['lineweight']
                          )
-        ax = decorate_seismic(ax, ntraces, tickfmt, cfg, fs)
+
+    ax = decorate_seismic(ax, ntraces, tickfmt, cfg)
 
     # Plot title
     title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
     title_ax = plot_title(title_ax, target, fs=fs)
 
     # Plot text header.
-    s = str(section.textual_file_header)[2:-1]
+    s = section.textual_file_header.decode()
     start = (h - mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
     head_ax = plot_header(head_ax, s, fs)
