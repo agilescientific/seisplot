@@ -3,7 +3,7 @@
 # Configuration file for seisplot.py
 
 # Traces per inch   (less -> bigger plot)
-tpi: 50
+tpi: 100
 
 # Inches per second (more -> bigger plot)
 ips: 2
@@ -26,3 +26,9 @@ opacity: 0.5
 
 # Wiggle plot lineweight
 lineweight: 0.2
+
+# Colormap for variable density
+cmap: 'RdBu'
+
+# Turn seismic gridlines 'on' or 'off'
+seis_grid: 'off'
