@@ -131,7 +131,7 @@ def plot_spectrum(spec_ax, data, dt, tickfmt, trace=10, fs=10):
     spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fs - 4)
     spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fs - 4)
     spec_ax.set_ylabel('amplitude', fontsize=fs - 4)
-    spec_ax.text(.9, .9, 'Amplitude Spectrum',
+    spec_ax.text(.98, .9, 'Amplitude spectrum',
                  horizontalalignment='right',
                  verticalalignment='top',
                  transform=spec_ax.transAxes, fontsize=fs - 3)
@@ -195,7 +195,7 @@ def plot_histogram(hist_ax, data, tickfmt, fs=10):
     a[0], a[1], a[2], a[3], a[4], a[5] = '0', '20', '40', '60', '80', '100'
     hist_ax.set_yticklabels(a, fontsize=fs - 4)
     hist_ax.xaxis.set_major_formatter(tickfmt)
-    hist_ax.text(.9, .9, 'Histogram',
+    hist_ax.text(.98, .9, 'Histogram',
                  horizontalalignment='right',
                  verticalalignment='top',
                  transform=hist_ax.transAxes, fontsize=fs - 3)
@@ -204,7 +204,7 @@ def plot_histogram(hist_ax, data, tickfmt, fs=10):
     return hist_ax
 
 
-def plot_hrz_colorbar(clr_ax, cmap, mima=False):
+def plot_hrz_colorbar(clr_ax, cmap, mima=False, plusminus=False):
     """
     Puts a horizontal colorbar under / behind histogram
     """
@@ -224,11 +224,11 @@ def plot_hrz_colorbar(clr_ax, cmap, mima=False):
         clr_ax.text(0.95, 0.5, '%3.0f' % mi,
                     transform=clr_ax.transAxes,
                     horizontalalignment='center', verticalalignment='top',
-                    fontsize=fs-3)
+                    fontsize=fs - 3)
         clr_ax.text(0.05, 0.5, '%3.0f' % ma, transform=clr_ax.transAxes,
                     horizontalalignment='center',
-                    fontsize=fs-3)
-    else:
+                    fontsize=fs - 3)
+    if plusminus:
         clr_ax.text(0.95, 0.5, "+",
                     transform=clr_ax.transAxes,
                     ha='right', color='w',
