@@ -3,7 +3,7 @@
 # Configuration file for seisplot.py
 
 # Traces per inch   (less -> bigger plot)
-tpi: 50
+tpi: 100
 
 # Inches per second (more -> bigger plot)
 ips: 2
@@ -31,4 +31,4 @@ lineweight: 0.2
 cmap: 'RdBu'
 
 # Turn seismic gridlines 'on' or 'off'
-seis_grid: 'on'
+seis_grid: 'off'

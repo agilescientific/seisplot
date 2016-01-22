@@ -340,7 +340,7 @@ def main(target, cfg):
     par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
 
-    wiggle_display = False
+    wiggle_display = True
     variable_display = True
 
     # aspect = nsamples * wsd / (0.001 * dt * ntraces * (h - mb - mt))
