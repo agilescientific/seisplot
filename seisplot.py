@@ -157,14 +157,14 @@ def chunk(string, width=80):
     return result
 
 
-def plot_header(head_ax, s, fs=10):
+def plot_header(head_ax, s, fs):
     """
     Plot EBCIDIC header.
     """
     font = fm.FontProperties()
     font.set_family('monospace')
     font.set_size(fs-2)
-    head_ax.axis([0, 40, 0, 40])
+    head_ax.axis([0, 40, 0, 41])
     head_ax.text(1, 40 - 1,
                  chunk(s),
                  ha='left', va='top',
@@ -364,7 +364,7 @@ def main(target, cfg):
     s = section.textual_file_header.decode()
     start = (h - mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
-    head_ax = plot_header(head_ax, s, fs)
+    head_ax = plot_header(head_ax, s, fs=fs-1)
 
     # Params for histogram plot
     pady, padx = 0.1, 0.25 * wsl / w
