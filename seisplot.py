@@ -157,14 +157,14 @@ def chunk(string, width=80):
     return result
 
 
-def plot_header(head_ax, s, fs=10):
+def plot_header(head_ax, s, fs):
     """
     Plot EBCIDIC header.
     """
     font = fm.FontProperties()
     font.set_family('monospace')
     font.set_size(fs-2)
-    head_ax.axis([0, 40, 0, 40])
+    head_ax.axis([0, 40, 0, 41])
     head_ax.text(1, 40 - 1,
                  chunk(s),
                  ha='left', va='top',
@@ -188,7 +188,7 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     return trhead_ax
 
 
-def plot_histogram(hist_ax, data, tickfmt, fs=10):
+def plot_histogram(hist_ax, data, tickfmt, fs=10, zorder=2):
     """
     Plot a histogram of amplitude values.
     """
@@ -196,7 +196,7 @@ def plot_histogram(hist_ax, data, tickfmt, fs=10):
     clip_val = np.percentile(data, 99.0)
     hist_ax.patch.set_alpha(0.0)
     y, x, _ = hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
-                           alpha=1.0, color='#777777', lw=0)
+                           alpha=1.0, color='#777777', lw=0, zorder=2)
 
     hist_ax.set_xlim(-clip_val, clip_val)
     hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
@@ -217,7 +217,7 @@ def plot_histogram(hist_ax, data, tickfmt, fs=10):
     return hist_ax
 
 
-def plot_hrz_colorbar(clr_ax, cmap, mima=False, plusminus=False):
+def plot_hrz_colorbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zorder=1):
     """
     Puts a horizontal colorbar under / behind histogram
     """
@@ -228,18 +228,18 @@ def plot_hrz_colorbar(clr_ax, cmap, mima=False, plusminus=False):
     color_arr = color_arr[:, :, :-1]
     colour_roll = np.rollaxis(color_arr, 1)
     colour_roll2 = np.rollaxis(colour_roll, 1)
-    clr_ax.imshow(colour_roll2, extent=[0, ncolours, 0, 1], aspect='auto')
+    clr_ax.imshow(colour_roll2, extent=[0, ncolours, 0, 1], aspect='auto', zorder=zorder)
     clr_ax.set_yticks([])
     clr_ax.set_xticks([])
-    #ma, mi = np.amax(data), np.amin(data)
+    ma, mi = np.amax(data), np.amin(data)
     if mima:
         clr_ax.text(0.95, 0.5, '{:3.0f}'.format(mi),
                     transform=clr_ax.transAxes,
                     horizontalalignment='center', verticalalignment='top',
-                    fontsize=fs - 3)
+                    fontsize=8)
         clr_ax.text(0.05, 0.5, '{:3.0f}'.format(ma), transform=clr_ax.transAxes,
                     horizontalalignment='center',
-                    fontsize=fs - 3)
+                    fontsize=8)
     if plusminus:
         clr_ax.text(0.95, 0.5, "+",
                     transform=clr_ax.transAxes,
@@ -356,21 +356,32 @@ def main(target, cfg):
     par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
 
-    wiggle_display = True
-    variable_display = False
+    # Plot title
+    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
+    title_ax = plot_title(title_ax, target, fs=fs)
 
-    # aspect = nsamples * wsd / (0.001 * dt * ntraces * (h - mb - mt))
+    # Plot text header.
+    s = section.textual_file_header.decode()
+    start = (h - mt - fhh) / h
+    head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
+    head_ax = plot_header(head_ax, s, fs=fs-1)
 
-    if variable_display:
+    # Params for histogram plot
+    pady, padx = 0.1, 0.25 * wsl / w
+    cstrip = 0.025  # color_strip height
+    charty = 0.125  # height of chart
+    xhist = (ssl + padx)
+    whist = (1 - ssl - (mr/w)) - 2 * padx
+
+    if cfg['display'].lower() == 'varden':
         im = ax.imshow(data,
                        cmap=cfg['cmap'],
                        clim=[-clip_val, clip_val],
                        extent=[0, ntraces, tbase[-1], tbase[0]],
                        aspect='auto'
                        )
-        # plot_colourbar(fig, ax, im, data, mima=False, fs=10)
 
-    if wiggle_display:
+    elif cfg['display'].lower in ['vd', 'varden', 'variable']:
         ax = wiggle_plot(ax,
                          data,
                          tbase,
@@ -383,29 +394,40 @@ def main(target, cfg):
                          )
         ax.set_ylim(ax.get_ylim()[::-1])
 
-    ax = decorate_seismic(ax, ntraces, tickfmt, cfg)
-
-    # Plot title
-    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
-    title_ax = plot_title(title_ax, target, fs=fs)
-
-    # Plot text header.
-    s = section.textual_file_header.decode()
-    start = (h - mt - fhh) / h
-    head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
-    head_ax = plot_header(head_ax, s, fs)
-
-    # Params for histogram plot
-    pady, padx = 0.1, 0.25 * wsl / w
-    cstrip = 0.025  # color_strip height
-    charty = 0.125  # height of chart
-    xhist = (ssl + padx)
-    whist = (1 - ssl - (mr/w)) - 2 * padx
-
-    # Plot colourbar under histogram
-    if variable_display:
+        # Plot colourbar under histogram
         clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
         plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
+
+    elif cfg['display'].lower() == 'both':
+        # variable density goes on first
+        im = ax.imshow(data,
+                       cmap=cfg['cmap'],
+                       clim=[-clip_val, clip_val],
+                       extent=[0, ntraces, tbase[-1], tbase[0]],
+                       aspect='auto'
+                       )
+        # Plot colourbar under histogram
+        clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
+        plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
+
+        # wiggle plots go on top
+        ax = wiggle_plot(ax,
+                         data,
+                         tbase,
+                         ntraces,
+                         skip=cfg['skip'],
+                         gain=cfg['gain'],
+                         rgb=cfg['colour'],
+                         alpha=cfg['opacity'],
+                         lw=cfg['lineweight']
+                         )
+        # ax.set_ylim(ax.get_ylim()[::-1])
+
+    else:
+        Notice.fail("You need to specify the type of display: wiggle or vd")
+
+    # Annotations
+    ax = decorate_seismic(ax, ntraces, tickfmt, cfg)
 
     # Plot histogram.
     hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
@@ -467,5 +489,9 @@ if __name__ == "__main__":
     Notice.info("Filename   {}".format(target))
     Notice.info("Config     {}".format(args.config.name))
     cfg['outfile'] = args.out
+
+    # Go and do things.
     main(target, cfg)
+
+    # We're back! And we're done...
     Notice.hr_header("Done")

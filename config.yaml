@@ -11,11 +11,11 @@ ips: 3
 # Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
 skip: 2
 
-# Multiplication factor for amplitudes 
-gain: 1 
+# Seismic data display parameters (wiggle, varden, both):
+display: both
 
-# Fontsize
-fontsize: 10
+# Multiplication factor for amplitudes 
+gain: 2
 
 # Wiggle fill: RGB, 0-255, opacity: 0-1
 colour: 
@@ -32,3 +32,11 @@ cmap: 'RdBu'
 
 # Turn seismic gridlines 'on' or 'off'
 seis_grid: 'off'
+
+# Fontsize
+fontsize: 10
+
+# Stupid things
+stained_paper: true
+coffee_rings: 2
+distortion: true
