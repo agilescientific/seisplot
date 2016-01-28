@@ -401,10 +401,7 @@ def main(target, cfg):
     charty = 0.125  # height of chart
     xhist = (ssl + padx)
     whist = (1 - ssl - (mr/w)) - 2 * padx
-    print(ssl, mr, w, padx)
-    print(xhist, whist)
-    print(w, h)
-    print(mr)
+
     # Plot colourbar under histogram
     if variable_display:
         clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])

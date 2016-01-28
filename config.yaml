@@ -3,13 +3,13 @@
 # Configuration file for seisplot.py
 
 # Traces per inch   (less -> bigger plot)
-tpi: 100
+tpi: 50
 
 # Inches per second (more -> bigger plot)
-ips: 2
+ips: 3
 
 # Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
-skip: 5
+skip: 2
 
 # Multiplication factor for amplitudes 
 gain: 1 
