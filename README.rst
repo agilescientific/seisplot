@@ -7,16 +7,12 @@ Get this repo with ``git`` or by downloading the ZIP file, and enter that direct
 
 Make and enter a virtual environment::
 
-    conda create -n seisplot python=3.4
+    conda create -n seisplot --file package-list.txt
     source activate seisplot
 
-Install some more dependencies::
+Install one more dependency::
 
-    conda install numpy
     conda install -c obspy obspy
-    conda install nose
-    conda install pyyaml
-    conda install pillow
 
 Edit ``config.yaml`` to meet your requirements.
 
