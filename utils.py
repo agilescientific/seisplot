@@ -7,6 +7,68 @@ Simple seismic plotter.
 :license: Apache 2.0
 """
 import matplotlib.pyplot as plt
+import requests
+from io import BytesIO
+from PIL import Image
+import numpy as np
+
+
+def max_opacity(image, maxi):
+    """
+    Adjust the maximum opacity of an image.
+    """
+    data = np.array(image)
+    adj = maxi*255/np.amax(data)
+    data[...,3] = adj * data[...,3]
+    result = Image.fromarray(data)
+    return result
+
+
+def stain_paper(image):
+    fname = "resources/stained_and_folded_paper_.png"
+    paper = Image.open(fname)
+
+    # Adjust opacity.
+    paper2 = max_opacity(paper, 0.25)
+
+    # Crop paper to image size
+    # If paper is bigger than image.
+    left = int((paper2.size[0] - image.size[0]) / 2)
+    right = left + image.size[0]
+    upper = int((paper2.size[1] - image.size[1]) / 2)
+    lower = upper + image.size[1]
+    box = (left, upper, right, lower)
+    paper2 = paper2.crop(box=box)
+
+    # Do it.
+    image.paste(paper2, (0, 0), paper2)
+    return
+
+def add_a_ring(image):
+    fname = "resources/coffee_stain.png"
+    stain = Image.open(fname)
+
+    # Adjust opacity.
+    stain2 = max_opacity(stain, 0.35)
+
+    # Rotate the stain by a random amount.
+    angle = np.random.random() * 360
+    stain2 = stain2.rotate(angle, resample=Image.BICUBIC, expand=True)
+
+    # Find a random place for it.
+    x = np.random.randint(-stain.size[0]/2, image.size[0]-stain2.size[0]/2)
+    y = np.random.randint(-stain.size[1]/2, image.size[1]-stain2.size[1]/2)
+
+    # Do it.
+    image.paste(stain2, (x, y), stain2)
+    return
+
+
+def add_rings(image, n=0):
+    if n:
+        for i in range(n):
+            add_a_ring(image)
+    return
 
 
 def add_subplot_axes(ax, rect, axisbg='w'):

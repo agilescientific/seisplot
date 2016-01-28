@@ -28,15 +28,13 @@ opacity: 0.5
 lineweight: 0.2
 
 # Colormap for variable density
-cmap: 'RdBu'
-
-# Turn seismic gridlines 'on' or 'off'
-seis_grid: 'off'
+# e.g. Greys, RdBu
+# See more at http://matplotlib.org/examples/color/colormaps_reference.html
+cmap: RdBu
 
 # Fontsize
 fontsize: 10
 
 # Stupid things
-stained_paper: true
+stain_paper: true
 coffee_rings: 2
-distortion: true

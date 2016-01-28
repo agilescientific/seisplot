@@ -20,13 +20,13 @@ import matplotlib.font_manager as fm
 import matplotlib.ticker as mtick
 from matplotlib import cm
 from matplotlib.colors import makeMappingArray
+from PIL import Image
 
 from obspy.segy.segy import readSEGY
 
 # Import our stuff.
 from notice import Notice
-from utils import add_subplot_axes
-
+import utils
 
 #####################################################################
 #
@@ -71,7 +71,6 @@ def decorate_seismic(ax, ntraces, tickfmt, cfg):
     Add various things to the seismic plot.
     """
     fs = cfg['fontsize']
-    # ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim([0, ntraces])
     ax.set_ylabel('Two-way time [ms]', fontsize=fs - 2)
     ax.set_xlabel('Trace no.', fontsize=fs - 2, horizontalalignment='center')
@@ -79,12 +78,7 @@ def decorate_seismic(ax, ntraces, tickfmt, cfg):
     ax.set_yticklabels(ax.get_yticks(), fontsize=fs - 2)
     ax.xaxis.set_major_formatter(tickfmt)
     ax.yaxis.set_major_formatter(tickfmt)
-    if cfg['seis_grid'] == 'on':
-        pass
-        # ax.grid()
-    if cfg['seis_grid'] == 'off':
-        pass
-        # ax.grid('off')
+
     return ax
 
 
@@ -93,7 +87,7 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
     Put a small colourbar right in the seismic data area.
     """
     ma, mi = np.amax(data), np.amin(data)
-    colorbar_ax = add_subplot_axes(ax, [0.975, 0.025, 0.01, 0.1])
+    colorbar_ax = utils.add_subplot_axes(ax, [0.975, 0.025, 0.01, 0.1])
     fig.colorbar(im, cax=colorbar_ax)
     if mima:
         colorbar_ax.text(0.5, -0.1, '%3.0f' % mi,
@@ -446,8 +440,13 @@ def main(target, cfg):
     #
     #####################################################################
     Notice.hr_header("Saving")
+
+    if cfg['stain_paper'] or cfg['coffee_rings'] or cfg['distort']:
+        stupid = True
+
     s = "Saved image file {} in {:.1f} s"
     if cfg['outfile']:
+        stem, _ = os.path.splitext(cfg['outfile'])
         fig.savefig(cfg['outfile'])
         t3 = time.time()
         Notice.ok(s.format(cfg['outfile'], t3-t2))
@@ -456,6 +455,28 @@ def main(target, cfg):
         fig.savefig(stem)
         t3 = time.time()
         Notice.ok(s.format(stem+'.png', t3-t2))
+
+    if stupid:
+        fig.savefig(stem + ".stupid.png")
+    else:
+        return
+
+    #####################################################################
+    #
+    # SAVE STUPID FILE
+    #
+    #####################################################################
+    Notice.hr_header("Applying the stupidity")
+
+    stupid_image = Image.open(stem + ".stupid.png")
+    if cfg['stain_paper']:
+        utils.stain_paper(stupid_image)
+    utils.add_rings(stupid_image, cfg['coffee_rings'])
+    stupid_image.save(stem + ".stupid.png")
+
+    s = "Saved stupid file stupid.png in {:.1f} s"
+    t4 = time.time()
+    Notice.ok(s.format(t4-t3))
 
     return
 

@@ -12,9 +12,11 @@ Make and enter a virtual environment::
 
 Install some more dependencies::
 
+    conda install numpy
     conda install -c obspy obspy
     conda install nose
     conda install pyyaml
+    conda install pillow
 
 Edit ``config.yaml`` to meet your requirements.
 
