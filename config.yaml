@@ -28,9 +28,9 @@ opacity: 0.5
 lineweight: 0.2
 
 # Colormap for variable density
-# e.g. Greys, RdBu
+# e.g. matplotlib colourbars: Greys (black to white), RdBu, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
-cmap: RdBu
+cmap: Greys
 
 # Fontsize
 fontsize: 10
