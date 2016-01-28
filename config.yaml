@@ -35,6 +35,11 @@ cmap: RdBu
 # Fontsize
 fontsize: 10
 
+# Watermark
+watermark_text: © A Seismic Company
+watermark_size: 12
+watermark_colour: white
+
 # Stupid things
-stain_paper: true
-coffee_rings: 2
+stain_paper: false
+coffee_rings: 0

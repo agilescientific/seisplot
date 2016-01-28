@@ -34,6 +34,7 @@ import utils
 #
 #####################################################################
 
+
 def wiggle_plot(ax, data, tbase, ntraces,
                 skip=1,
                 perc=98.0,
@@ -443,6 +444,8 @@ def main(target, cfg):
 
     if cfg['stain_paper'] or cfg['coffee_rings'] or cfg['distort']:
         stupid = True
+    else:
+        stupid = False
 
     s = "Saved image file {} in {:.1f} s"
     if cfg['outfile']:
@@ -510,6 +513,16 @@ if __name__ == "__main__":
     Notice.info("Filename   {}".format(target))
     Notice.info("Config     {}".format(args.config.name))
     cfg['outfile'] = args.out
+
+    # Fill in 'missing' fields in cfg.
+    fields = ['tpi', 'ips', 'skip', 'display', 'gain', 'colour', 'opacity',
+              'lineweight', 'cmap', 'fontsize',
+              'watermark_text', 'watermark_size', 'watermark_colour',
+              'stain_paper', 'coffee_rings', 'distort']
+
+    for field in fields:
+        if cfg.get(field) is None:
+            cfg[field] = None
 
     # Go and do things.
     main(target, cfg)

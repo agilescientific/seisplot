@@ -7,8 +7,6 @@ Simple seismic plotter.
 :license: Apache 2.0
 """
 import matplotlib.pyplot as plt
-import requests
-from io import BytesIO
 from PIL import Image
 import numpy as np
 
