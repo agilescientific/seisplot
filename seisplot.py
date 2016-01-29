@@ -20,6 +20,7 @@ import matplotlib.font_manager as fm
 import matplotlib.ticker as mtick
 from matplotlib import cm
 from matplotlib.colors import makeMappingArray
+from matplotlib.font_manager import FontProperties
 from PIL import Image
 
 from obspy.segy.segy import readSEGY
@@ -81,6 +82,54 @@ def decorate_seismic(ax, ntraces, tickfmt, cfg):
     ax.yaxis.set_major_formatter(tickfmt)
 
     return ax
+
+
+def watermark_seismic(ax, text, size, colour, xn, yn=None):
+    """
+    Add semi-transparent text to the seismic.
+    """
+    font = FontProperties()
+    font.set_weight('bold')
+    font.set_family('sans-serif')
+    style = {'size': size,
+             'color': colour,
+             'alpha': 0.5,
+             'fontproperties': font
+             }
+    alignment = {'rotation': 33,
+                 'horizontalalignment': 'left',
+                 'verticalalignment': 'baseline'
+                 }
+    params = dict(style, **alignment)
+
+    # Axis ranges.
+    xr = ax.get_xticks()
+    yr = ax.get_yticks()
+    aspect = xr.size / yr.size
+    yn = yn or (xn / aspect)
+    yn += 1
+
+    # Positions for even lines.
+    xpos = np.linspace(xr[0], xr[-1], xn)[:-1]
+    ypos = np.linspace(yr[0], yr[-1], yn)[:-1]
+
+    # Intervals.
+    xiv = xpos[1] - xpos[0]
+    yiv = ypos[1] - ypos[0]
+
+    # Adjust the y positions.
+    ypos += yiv / 2
+
+    # Place everything.
+    c = False
+    for y in ypos:
+        for x in xpos:
+            if c:
+                xi = x + xiv / 2
+            else:
+                xi = x
+            ax.text(xi, y, text, **params)
+        c = not c
 
 
 def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
@@ -361,14 +410,22 @@ def main(target, cfg):
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
     head_ax = plot_header(head_ax, s, fs=fs-1)
 
+    # Plot histogram.
     # Params for histogram plot
     pady, padx = 0.1, 0.25 * wsl / w
     cstrip = 0.025  # color_strip height
     charty = 0.125  # height of chart
     xhist = (ssl + padx)
     whist = (1 - ssl - (mr/w)) - 2 * padx
+    hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
+    hist_ax = plot_histogram(hist_ax, data, tickfmt, fs)
 
-    if cfg['display'].lower() == 'varden':
+    # Plot spectrum.
+    spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
+    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, fs)
+
+    # Plot seismic data.
+    if cfg['display'].lower() in ['vd', 'varden', 'variable']:
         im = ax.imshow(data,
                        cmap=cfg['cmap'],
                        clim=[-clip_val, clip_val],
@@ -376,7 +433,7 @@ def main(target, cfg):
                        aspect='auto'
                        )
 
-    elif cfg['display'].lower in ['vd', 'varden', 'variable']:
+    elif cfg['display'].lower == 'wiggle':
         ax = wiggle_plot(ax,
                          data,
                          tbase,
@@ -421,16 +478,17 @@ def main(target, cfg):
     else:
         Notice.fail("You need to specify the type of display: wiggle or vd")
 
-    # Annotations
+    # Seismic axis annotations.
     ax = decorate_seismic(ax, ntraces, tickfmt, cfg)
 
-    # Plot histogram.
-    hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
-    hist_ax = plot_histogram(hist_ax, data, tickfmt, fs)
-
-    # Plot spectrum.
-    spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
-    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, fs)
+    # Watermark.
+    if cfg['watermark_text']:
+        text = cfg['watermark_text']
+        size = cfg['watermark_size']
+        colour = cfg['watermark_colour']
+        xn = cfg['watermark_cols']
+        yn = cfg['watermark_rows']
+        ax = watermark_seismic(ax, text, size, colour, xn, yn)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))
@@ -515,14 +573,30 @@ if __name__ == "__main__":
     cfg['outfile'] = args.out
 
     # Fill in 'missing' fields in cfg.
-    fields = ['tpi', 'ips', 'skip', 'display', 'gain', 'colour', 'opacity',
-              'lineweight', 'cmap', 'fontsize',
-              'watermark_text', 'watermark_size', 'watermark_colour',
-              'stain_paper', 'coffee_rings', 'distort']
+    defaults = {'tpi': 10,
+                'ips': 1,
+                'skip': 2,
+                'display': 'vd',
+                'gain': 1.0,
+                'colour': [0, 0, 0],
+                'opacity': 1.0,
+                'lineweight': 0.2,
+                'cmap': 'Greys',
+                'fontsize': 10,
+                'watermark_text': 'COPYRIGHTED MATERIAL',
+                'watermark_size': 14,
+                'watermark_colour': 'white',
+                'watermark_rotation': 33,
+                'watermark_cols': 6,
+                'watermark_rows': 0,  # automatic
+                'stain_paper': None,
+                'coffee_rings': 0,
+                'distort': False,
+                }
 
-    for field in fields:
-        if cfg.get(field) is None:
-            cfg[field] = None
+    for k, v in defaults.items():
+        if cfg.get(k) is None:
+            cfg[k] = v
 
     # Go and do things.
     main(target, cfg)

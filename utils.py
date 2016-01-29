@@ -17,12 +17,15 @@ def max_opacity(image, maxi):
     """
     data = np.array(image)
     adj = maxi*255/np.amax(data)
-    data[...,3] = adj * data[...,3]
+    data[..., 3] = adj * data[..., 3]
     result = Image.fromarray(data)
     return result
 
 
 def stain_paper(image):
+    """
+    Add a staining image to the paper.
+    """
     fname = "resources/stained_and_folded_paper_.png"
     paper = Image.open(fname)
 
@@ -42,7 +45,11 @@ def stain_paper(image):
     image.paste(paper2, (0, 0), paper2)
     return
 
+
 def add_a_ring(image):
+    """
+    Add a coffee cup ring.
+    """
     fname = "resources/coffee_stain.png"
     stain = Image.open(fname)
 
@@ -63,6 +70,9 @@ def add_a_ring(image):
 
 
 def add_rings(image, n=0):
+    """
+    Add the required number of coffee rings.
+    """
     if n:
         for i in range(n):
             add_a_ring(image)
