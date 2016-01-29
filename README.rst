@@ -26,4 +26,4 @@ This will use ``config.yaml`` make a PNG file in the same location, and with the
 
 .. image:: https://dl.dropboxusercontent.com/u/14965965/31_81_PR.png
 
-*Made with love and silliness by `Agile <http://agilegeoscience.com>`_*
+*Made with love and silliness by* `Agile <http://agilegeoscience.com>`_
