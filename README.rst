@@ -24,6 +24,8 @@ This will use ``config.yaml`` make a PNG file in the same location, and with the
 
     python seisplot.py </path/to/infile.segy> --config config.yaml --out /path/to/result.pdf
 
-.. image:: https://dl.dropboxusercontent.com/u/14965965/31_81_PR.png
+The stains are optional.
+
+.. image:: https://dl.dropboxusercontent.com/u/14965965/31_81_PR.stupid.png
 
 *Made with love and silliness by* `Agile <http://agilegeoscience.com>`_
