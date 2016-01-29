@@ -131,6 +131,8 @@ def watermark_seismic(ax, text, size, colour, xn, yn=None):
             ax.text(xi, y, text, **params)
         c = not c
 
+    return ax
+
 
 def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
     """
@@ -184,7 +186,6 @@ def plot_spectrum(spec_ax, data, dt, tickfmt, trace=10, fs=10):
     spec_ax.yaxis.set_major_formatter(tickfmt)
     spec_ax.xaxis.set_major_formatter(tickfmt)
     spec_ax.grid('on')
-
     return spec_ax
 
 
@@ -203,19 +204,23 @@ def chunk(string, width=80):
 
 def plot_header(head_ax, s, fs):
     """
-    Plot EBCIDIC header.
+    Plot EBCDIC or ASCII header.
     """
     font = fm.FontProperties()
     font.set_family('monospace')
     font.set_size(fs-2)
-    head_ax.axis([0, 40, 0, 41])
-    head_ax.text(1, 40 - 1,
+    head_ax.axis([0, 40, 41, 0])
+    head_ax.text(1, 1,
                  chunk(s),
                  ha='left', va='top',
                  fontproperties=font)
     head_ax.set_xticks([])
     head_ax.set_yticks([])
-
+    head_ax.text(40, 42,
+                 'plot by github.com/agile-geoscience/seisplot',
+                 size=fs, color='lightgray',
+                 ha='right', va='top'
+                 )
     return head_ax
 
 
@@ -228,7 +233,10 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     trhead_ax.axis([0, 40, 0, 40])
     trhead_ax.set_yticks([])
     trhead_ax.set_xticks([])
-    trhead_ax.text(20, 20, blurb, ha='center', va='center', rotation=0, fontsize=fs-4, fontproperties=font)
+    trhead_ax.text(20, 20, blurb,
+                   ha='center', va='center',
+                   rotation=0, fontsize=fs-4,
+                   fontproperties=font)
     return trhead_ax
 
 
@@ -369,8 +377,8 @@ def main(target, cfg):
     fhh = 5  # File header height
     m = 0.5  # margin in inches
 
-    # Margins, CSS like
-    mt, mb, ml, mr = m, m, 2 * m, 2 * m
+    # Margins, CSS like: top, right, bottom, left.
+    mt, mr, mb, ml,  = m,  2 * m, m, 2 * m
     mm = mr / 2  # padded margin between seismic and label
 
     # Width is determined by tpi, plus a constant for the sidelabel, plus 1 in
@@ -401,12 +409,12 @@ def main(target, cfg):
     par1.xaxis.set_major_formatter(tickfmt)
 
     # Plot title
-    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(2*h)])
-    title_ax = plot_title(title_ax, target, fs=fs)
+    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
+    title_ax = plot_title(title_ax, target, fs=1.5*fs)
 
     # Plot text header.
     s = section.textual_file_header.decode()
-    start = (h - mt - fhh) / h
+    start = (h - 1.5*mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
     head_ax = plot_header(head_ax, s, fs=fs-1)
 
