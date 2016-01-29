@@ -3,13 +3,13 @@
 # Configuration file for seisplot.py
 
 # Traces per inch   (less -> bigger plot)
-tpi: 50
+tpi: 40
 
 # Inches per second (more -> bigger plot)
 ips: 3
 
 # Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
-skip: 2
+skip: 1
 
 # Seismic data display parameters (wiggle, varden, both):
 display: vd
@@ -38,10 +38,10 @@ fontsize: 10
 # Watermark
 watermark_text: © A Seismic Company
 watermark_size: 12
-watermark_colour: white
+watermark_colour: white  # only white works well for now...
 watermark_rotation: 33  # degrees
 watermark_cols: 4  # in x direction
 
 # Stupid things
-stain_paper: false
-coffee_rings: 0
+stain_paper: yes
+coffee_rings: 1

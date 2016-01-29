@@ -441,7 +441,7 @@ def main(target, cfg):
                        aspect='auto'
                        )
 
-    elif cfg['display'].lower == 'wiggle':
+    elif cfg['display'].lower() == 'wiggle':
         ax = wiggle_plot(ax,
                          data,
                          tbase,
