@@ -128,7 +128,7 @@ def watermark_seismic(ax, text, size, colour, xn, yn=None):
                 xi = x + xiv / 2
             else:
                 xi = x
-            ax.text(xi, y, text, **params)
+            ax.text(xi, y, text, clip_box=ax.clipbox, clip_on=True, **params)
         c = not c
 
     return ax
