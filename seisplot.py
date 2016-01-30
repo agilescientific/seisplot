@@ -133,34 +133,6 @@ def watermark_seismic(ax, text, size, colour, xn, yn=None):
     return ax
 
 
-def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
-    """
-    Put a small colourbar right in the seismic data area.
-    """
-    ma, mi = np.amax(data), np.amin(data)
-    colorbar_ax = utils.add_subplot_axes(ax, [0.975, 0.025, 0.01, 0.1])
-    fig.colorbar(im, cax=colorbar_ax)
-    if mima:
-        colorbar_ax.text(0.5, -0.1, '%3.0f' % mi,
-                         transform=colorbar_ax.transAxes,
-                         horizontalalignment='center', verticalalignment='top',
-                         fontsize=fs - 3)
-        colorbar_ax.text(0.5, 1.1, '%3.0f' % ma,
-                         transform=colorbar_ax.transAxes,
-                         horizontalalignment='center',
-                         fontsize=fs - 3)
-    else:
-        colorbar_ax.text(0.5, 0.9, "+",
-                         transform=colorbar_ax.transAxes,
-                         ha='center', color='white',
-                         va='center', fontsize=12)
-        colorbar_ax.text(0.5, 0.15, "-",
-                         transform=colorbar_ax.transAxes, color='k',
-                         ha='center', va='center', fontsize=16)
-    colorbar_ax.set_axis_off()
-    return fig
-
-
 def get_spectrum(signal, fs):
     windowed = signal * np.blackman(len(signal))
     a = abs(np.fft.rfft(windowed))
@@ -248,7 +220,7 @@ def plot_header(head_ax, s, fs):
     """
     font = fm.FontProperties()
     font.set_family('monospace')
-    font.set_size(fs-2)
+    font.set_size(fs-1)
     head_ax.axis([0, 40, 41, 0])
     head_ax.text(1, 1,
                  chunk(s),
@@ -280,7 +252,7 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     return trhead_ax
 
 
-def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10, zorder=2):
+def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10):
     """
     Plot a histogram of amplitude values.
     """
@@ -290,7 +262,7 @@ def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10, zorder=2):
     clip_val = np.percentile(data, percentile)
     hist_ax.patch.set_alpha(0.0)
     y, x, _ = hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
-                           alpha=1.0, color='#777777', lw=0, zorder=2)
+                           alpha=1.0, color='#777777', lw=0)
 
     hist_ax.set_xlim(-clip_val, clip_val)
     hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
@@ -299,6 +271,8 @@ def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10, zorder=2):
     hist_ax.set_ylim([0, y.max()])
     hist_ax.set_yticks(np.linspace(0, y.max(), 6))
     hist_ax.set_ylabel('percentage of samples', fontsize=fs - 4)
+    hist_ax.tick_params(axis='x', pad=25)
+    hist_ax.xaxis.labelpad = 25
 
     ticks = hist_ax.get_yticks().tolist()  # ytick labels
     percentages = 100*np.array(ticks)/data.size
@@ -327,9 +301,9 @@ def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10, zorder=2):
     return hist_ax
 
 
-def plot_hrz_colorbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zorder=1):
+def plot_colourbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zorder=1):
     """
-    Puts a horizontal colorbar under / behind histogram
+    Puts a colorbar under / behind histogram
     """
     seisbar = cm.get_cmap(cmap)
     ncolours = 32
@@ -358,7 +332,6 @@ def plot_hrz_colorbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zord
         clr_ax.text(0.05, 0.5, "-",
                     transform=clr_ax.transAxes, color='k',
                     ha='left', va='center', fontsize=16)
-    # clr_ax.set_axis_off()
 
     return clr_ax
 
@@ -439,11 +412,12 @@ def main(target, cfg):
     mt, mr, mb, ml,  = m,  2 * m, m, 2 * m
     mm = mr / 2  # padded margin between seismic and label
 
-    # Width is determined by tpi, plus a constant for the sidelabel, plus 1 in
-    w = ml + wsd + wsl + mr + mm
+    # Width is determined by tpi, plus a constant for the sidelabel, plus margins.
+    w = ml + wsd + mm + wsl + mr
 
-    # Height is given by ips, but with a minimum of 8 inches, plus 1 in
-    h = max(mih, cfg['ips'] * (np.amax(tbase) - np.amin(tbase)) / 1000 + mt + mb)
+    # Height is given by ips, but with a minimum of 8 inches
+    h_reqd = cfg['ips'] * (tbase[-1] - tbase[0]) / 1000 + mt + mb
+    h = max(mih, h_reqd)
 
     # More settings
     ssl = (ml + wsd + mm) / w  # Start of side label (ratio)
@@ -478,16 +452,23 @@ def main(target, cfg):
 
     # Plot histogram.
     # Params for histogram plot
-    pady, padx = 0.1, 0.25 * wsl / w
-    cstrip = 0.025  # color_strip height
-    charty = 0.125  # height of chart
-    xhist = (ssl + padx)
-    whist = (1 - ssl - (mr/w)) - 2 * padx
-    hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
+    pady = 0.75 / h  # 0.75 inch
+    padx = 0.75 / w   # 0.75 inch
+    cstrip = 0.3/h   # color_strip height = 0.3 in
+    charth = 1.5/h   # height of charts = 1.5 in
+    chartw = 1 - ssl - mr/w - padx
+    chartx = (ssl + padx)
+    histy = 1.5 * mb/h + charth + pady
+    # Plot colourbar under histogram
+    clrbar_ax = fig.add_axes([chartx, histy - cstrip, chartw, cstrip])
+    clrbar_ax = plot_colourbar(clrbar_ax, cmap=cfg['cmap'])
+    # Plot histogram itself
+    hist_ax = fig.add_axes([chartx, histy, chartw, charth])
     hist_ax = plot_histogram(hist_ax, data, tickfmt, percentile=cfg['percentile'], fs=fs)
 
     # Plot spectrum.
-    spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
+    specy = 1.5 * mb/h
+    spec_ax = fig.add_axes([chartx, specy, chartw, charth])
     spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=20, fontsize=fs)
 
     # Plot seismic data.
@@ -512,10 +493,6 @@ def main(target, cfg):
                          )
         ax.set_ylim(ax.get_ylim()[::-1])
 
-        # Plot colourbar under histogram
-        clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
-        plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
-
     elif cfg['display'].lower() == 'both':
         # variable density goes on first
         im = ax.imshow(data,
@@ -524,9 +501,6 @@ def main(target, cfg):
                        extent=[0, ntraces, tbase[-1], tbase[0]],
                        aspect='auto'
                        )
-        # Plot colourbar under histogram
-        clrbar_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady - cstrip, whist, cstrip])
-        plot_hrz_colorbar(clrbar_ax, cmap=cfg['cmap'])
 
         # wiggle plots go on top
         ax = wiggle_plot(ax,
