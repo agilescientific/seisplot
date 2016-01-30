@@ -17,6 +17,9 @@ display: vd
 # Multiplication factor for amplitudes 
 gain: 2
 
+# Percentile to clip amplitude at for display and for histogram. 
+percentile: 99.0
+
 # Wiggle fill: RGB, 0-255, opacity: 0-1
 colour: 
   - 0

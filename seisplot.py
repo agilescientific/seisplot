@@ -37,7 +37,7 @@ import utils
 
 def wiggle_plot(ax, data, tbase, ntraces,
                 skip=1,
-                perc=98.0,
+                perc=99.0,
                 gain=1.0,
                 rgb=(0, 0, 0),
                 alpha=0.5,
@@ -191,18 +191,18 @@ def plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=10):
     for ti in trace_indices:
         trace = data[:, ti]
         f, amp, fmi, fma = get_spectrum(trace, fs)
-        db = 20 * np.log10(amp)
-        db -= np.amax(db) + 20
 
         peak = f[np.argmax(amp)]
 
-        specs.append(db)
+        specs.append(amp)
         peaks.append(peak)
         mis.append(fmi)
         mas.append(fma)
 
     spec = np.mean(np.dstack(specs), axis=-1)
     spec = np.squeeze(spec)
+    db = 20 * np.log10(amp)
+    db = db - np.amax(db)
     f_peak = np.mean(peaks)
     f_min = np.amin(mis)
     f_max = np.amax(mas)
@@ -210,17 +210,16 @@ def plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=10):
     statstring = "\nMin: {:.2f} Hz\nPeak: {:.2f} Hz\nMax: {:.2f}"
     stats = statstring.format(f_min, f_peak, f_max)
 
-    spec_ax.patch.set_alpha(0.5)
-    spec_ax.plot(f, spec, lw=0)  # Plot invisible line to get the min
+    spec_ax.plot(f, db, lw=0)  # Plot invisible line to get the min
     y_min = spec_ax.get_yticks()[0]
-    spec_ax.fill_between(f, y_min, spec, lw=0, facecolor='k', alpha=0.5)
+    spec_ax.fill_between(f, y_min, db, lw=0, facecolor='k', alpha=0.5)
     spec_ax.set_xlabel('frequency [Hz]', fontsize=fontsize - 4)
     spec_ax.xaxis.set_label_coords(0.5, -0.12)
     spec_ax.set_xlim([0, np.amax(f)])
     spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fontsize - 4)
     spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fontsize - 4)
-    spec_ax.set_ylabel('amplitude', fontsize=fontsize - 4)
-    spec_ax.text(.98, .95, 'Amplitude spectrum'+stats,
+    spec_ax.set_ylabel('power [dB]', fontsize=fontsize - 4)
+    spec_ax.text(.98, .95, 'AMPLITUDE SPECTRUM'+stats,
                  horizontalalignment='right',
                  verticalalignment='top',
                  transform=spec_ax.transAxes, fontsize=fontsize - 3)
@@ -281,12 +280,14 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     return trhead_ax
 
 
-def plot_histogram(hist_ax, data, tickfmt, fs=10, zorder=2):
+def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10, zorder=2):
     """
     Plot a histogram of amplitude values.
     """
-    largest = max(np.amax(data), abs(np.amin(data)))
-    clip_val = np.percentile(data, 99.0)
+    datamax = np.amax(data)
+    datamin = np.amin(data)
+    largest = max(datamax, abs(datamin))
+    clip_val = np.percentile(data, percentile)
     hist_ax.patch.set_alpha(0.0)
     y, x, _ = hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
                            alpha=1.0, color='#777777', lw=0, zorder=2)
@@ -297,11 +298,27 @@ def plot_histogram(hist_ax, data, tickfmt, fs=10, zorder=2):
     hist_ax.xaxis.set_label_coords(0.5, -0.12)
     hist_ax.set_ylim([0, y.max()])
     hist_ax.set_yticks(np.linspace(0, y.max(), 6))
-    a = hist_ax.get_yticks().tolist()  # ytick labels
-    a[0], a[1], a[2], a[3], a[4], a[5] = '0', '20', '40', '60', '80', '100'
-    hist_ax.set_yticklabels(a, fontsize=fs - 4)
+    hist_ax.set_ylabel('percentage of samples', fontsize=fs - 4)
+
+    ticks = hist_ax.get_yticks().tolist()  # ytick labels
+    percentages = 100*np.array(ticks)/data.size
+    labels = []
+    for label in percentages:
+        labels.append("{:.2f}".format(label))
+    hist_ax.set_yticklabels(labels, fontsize=fs - 4)
     hist_ax.xaxis.set_major_formatter(tickfmt)
-    hist_ax.text(.98, .95, 'Histogram',
+    if datamax < 1:
+        statstring = "\nMinimum: {:.4f}\nMaximum: {:.4f}".format(datamin, datamax)
+    elif datamax < 10:
+        statstring = "\nMinimum: {:.2f}\nMaximum: {:.4f}".format(datamin, datamax)
+    elif datamax < 100:
+        statstring = "\nMinimum: {:.1f}\nMaximum: {:.4f}".format(datamin, datamax)
+    else:
+        statstring = "\nMinimum: {:.0f}\nMaximum: {:.4f}".format(datamin, datamax)
+
+    statstring += "\nClip percentile: {:.1f}".format(percentile)
+
+    hist_ax.text(.98, .95, 'AMPLITUDE HISTOGRAM'+statstring,
                  horizontalalignment='right',
                  verticalalignment='top',
                  transform=hist_ax.transAxes, fontsize=fs - 3)
@@ -388,7 +405,7 @@ def main(target, cfg):
         ens.append(trace.header.ensemble_number)
         tsq.append(trace.header.trace_sequence_number_within_line)
 
-    clip_val = np.percentile(data, 99.0)
+    clip_val = np.percentile(data, cfg['percentile'])
 
     # Notify user of parameters
     Notice.info("n_traces   {}".format(ntraces))
@@ -467,11 +484,11 @@ def main(target, cfg):
     xhist = (ssl + padx)
     whist = (1 - ssl - (mr/w)) - 2 * padx
     hist_ax = fig.add_axes([xhist, 1.5 * mb/h + charty + pady, whist, charty])
-    hist_ax = plot_histogram(hist_ax, data, tickfmt, fs)
+    hist_ax = plot_histogram(hist_ax, data, tickfmt, percentile=cfg['percentile'], fs=fs)
 
     # Plot spectrum.
     spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
-    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=fs)
+    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=20, fontsize=fs)
 
     # Plot seismic data.
     if cfg['display'].lower() in ['vd', 'varden', 'variable']:
@@ -627,6 +644,7 @@ if __name__ == "__main__":
                 'skip': 2,
                 'display': 'vd',
                 'gain': 1.0,
+                'percentile': 99.0,
                 'colour': [0, 0, 0],
                 'opacity': 1.0,
                 'lineweight': 0.2,
