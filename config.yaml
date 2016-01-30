@@ -12,7 +12,7 @@ ips: 3
 skip: 1
 
 # Seismic data display parameters (wiggle, varden, both):
-display: wiggle
+display: vd
 
 # Multiplication factor for amplitudes 
 gain: 2

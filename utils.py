@@ -11,6 +11,16 @@ from PIL import Image
 import numpy as np
 
 
+def get_trace_indices(y, ntraces, spacing):
+    if spacing == 'random':
+        x = 0.05 + 0.9*np.random.random(ntraces)  # avoids edges
+        ti = np.sort(x * y)
+    else:
+        n = ntraces + 1
+        ti = np.arange(1./n, 1., 1./n) * y
+    return np.round(ti).astype(int)
+
+
 def max_opacity(image, maxi):
     """
     Adjust the maximum opacity of an image.

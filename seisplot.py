@@ -14,7 +14,6 @@ import time
 # Import 3rd party.
 import yaml
 import numpy as np
-from scipy import fft
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import matplotlib.ticker as mtick
@@ -162,27 +161,69 @@ def plot_colourbar(fig, ax, im, data, mima=False, fs=10):
     return fig
 
 
-def plot_spectrum(spec_ax, data, dt, tickfmt, trace=10, fs=10):
+def get_spectrum(signal, fs):
+    windowed = signal * np.blackman(len(signal))
+    a = abs(np.fft.rfft(windowed))
+    f = np.fft.rfftfreq(len(signal), 1/fs)
+
+    db = 20 * np.log10(a)
+    sig = db - np.amax(db) + 20
+    indices = ((sig[1:] >= 0) & (sig[:-1] < 0)).nonzero()
+    crossings = [z - sig[z] / (sig[z+1] - sig[z]) for z in indices]
+    mi, ma = np.amin(crossings), np.amax(crossings)
+    x = np.arange(0, len(f))  # for back-interpolation
+    f_min = np.interp(mi, x, f)
+    f_max = np.interp(ma, x, f)
+
+    return f, a, f_min, f_max
+
+
+def plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=10):
     """
     Plot a power spectrum.
     w is window length for smoothing filter
     """
-    S = abs(fft(data[:, trace]))
-    faxis = np.fft.fftfreq(len(data[:, 1]), d=dt / 10 ** 6)
-    x = faxis[:len(faxis) // 4]
-    y = np.sqrt(S[0:len(faxis) // 4])
+
+    trace_indices = utils.get_trace_indices(data.shape[1], ntraces, 'random')
+    fs = 1/(dt/10**6)
+
+    specs, peaks, mis, mas = [], [], [], []
+    for ti in trace_indices:
+        trace = data[:, ti]
+        f, amp, fmi, fma = get_spectrum(trace, fs)
+        db = 20 * np.log10(amp)
+        db -= np.amax(db) + 20
+
+        peak = f[np.argmax(amp)]
+
+        specs.append(db)
+        peaks.append(peak)
+        mis.append(fmi)
+        mas.append(fma)
+
+    spec = np.mean(np.dstack(specs), axis=-1)
+    spec = np.squeeze(spec)
+    f_peak = np.mean(peaks)
+    f_min = np.amin(mis)
+    f_max = np.amax(mas)
+
+    statstring = "\nMin: {:.2f} Hz\nPeak: {:.2f} Hz\nMax: {:.2f}"
+    stats = statstring.format(f_min, f_peak, f_max)
+
     spec_ax.patch.set_alpha(0.5)
-    spec_ax.fill_between(x, y, 0, lw=0, facecolor='k', alpha=0.5)
-    spec_ax.set_xlabel('frequency [Hz]', fontsize=fs - 4)
+    spec_ax.plot(f, spec, lw=0)  # Plot invisible line to get the min
+    y_min = spec_ax.get_yticks()[0]
+    spec_ax.fill_between(f, y_min, spec, lw=0, facecolor='k', alpha=0.5)
+    spec_ax.set_xlabel('frequency [Hz]', fontsize=fontsize - 4)
     spec_ax.xaxis.set_label_coords(0.5, -0.12)
-    spec_ax.set_xlim([0, x.max()])
-    spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fs - 4)
-    spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fs - 4)
-    spec_ax.set_ylabel('amplitude', fontsize=fs - 4)
-    spec_ax.text(.98, .9, 'Amplitude spectrum',
+    spec_ax.set_xlim([0, np.amax(f)])
+    spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fontsize - 4)
+    spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fontsize - 4)
+    spec_ax.set_ylabel('amplitude', fontsize=fontsize - 4)
+    spec_ax.text(.98, .95, 'Amplitude spectrum'+stats,
                  horizontalalignment='right',
                  verticalalignment='top',
-                 transform=spec_ax.transAxes, fontsize=fs - 3)
+                 transform=spec_ax.transAxes, fontsize=fontsize - 3)
     spec_ax.yaxis.set_major_formatter(tickfmt)
     spec_ax.xaxis.set_major_formatter(tickfmt)
     spec_ax.grid('on')
@@ -260,7 +301,7 @@ def plot_histogram(hist_ax, data, tickfmt, fs=10, zorder=2):
     a[0], a[1], a[2], a[3], a[4], a[5] = '0', '20', '40', '60', '80', '100'
     hist_ax.set_yticklabels(a, fontsize=fs - 4)
     hist_ax.xaxis.set_major_formatter(tickfmt)
-    hist_ax.text(.98, .9, 'Histogram',
+    hist_ax.text(.98, .95, 'Histogram',
                  horizontalalignment='right',
                  verticalalignment='top',
                  transform=hist_ax.transAxes, fontsize=fs - 3)
@@ -430,7 +471,7 @@ def main(target, cfg):
 
     # Plot spectrum.
     spec_ax = fig.add_axes([xhist, 1.5 * mb/h, whist, charty])
-    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, fs)
+    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=fs)
 
     # Plot seismic data.
     if cfg['display'].lower() in ['vd', 'varden', 'variable']:

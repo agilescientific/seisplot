@@ -30,7 +30,6 @@ pyyaml=3.11=py34_1
 qt=4.8.7=1
 readline=6.2=2
 requests=2.9.1=py34_0
-scipy=0.16.0=np19py34_1
 setuptools=19.4=py34_0
 sip=4.16.9=py34_0
 six=1.10.0=py34_0
