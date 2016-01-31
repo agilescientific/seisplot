@@ -6,13 +6,61 @@ Simple seismic plotter.
 :copyright: 2015 Agile Geoscience
 :license: Apache 2.0
 """
+# Standard
+import os
+import re
+
+# 3rd party
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
 
 
-def get_trace_indices(y, ntraces, spacing):
-    if spacing == 'random':
+def walk(directory, match=None):
+    """
+    Find files whose names match some regex. Like `fnmatch` but with regex.
+    Like `utils.listdir()` but recursive. Case insensitive.
+    Args:
+        directory (str): The directory to start at.
+    Yields:
+        str: Full path to each file in turn.
+    """
+    for path, dirs, files in os.walk(directory):
+        for f in files:
+            if match:
+                if not re.search(match, f, flags=re.IGNORECASE):
+                    continue
+            yield os.path.join(path, f)
+
+
+def listdir(directory, match=None):
+    """
+    Wrapper for `os.listdir()` that returns full paths. A bit like
+    `utils.walk()` but not recursive. Case insensitive.
+    Args:
+        directory (str): The directory to list.
+    Yields:
+        str: Full path to each file in turn.
+    """
+    for f in os.listdir(directory):
+        if match:
+            if not re.search(match, f, flags=re.IGNORECASE):
+                continue
+        yield os.path.join(directory, f)
+
+
+def get_trace_indices(y, ntraces, random=False):
+    """
+    Get a subset of trace positions.
+    Args:
+        y (int): The total number of traces to choose from.
+        ntraces (int): The number of traces to choose.
+        random (bool): Whether to choose random traces, or
+            to choose regularly-spaced.
+    Yields:
+        str: Full path to each file in turn.
+    """
+    if random:
         x = 0.05 + 0.9*np.random.random(ntraces)  # avoids edges
         ti = np.sort(x * y)
     else:

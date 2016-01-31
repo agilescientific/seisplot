@@ -156,7 +156,9 @@ def plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=10):
     w is window length for smoothing filter
     """
 
-    trace_indices = utils.get_trace_indices(data.shape[1], ntraces, 'random')
+    trace_indices = utils.get_trace_indices(data.shape[1],
+                                            ntraces,
+                                            random=True)
     fs = 1/(dt/10**6)
 
     specs, peaks, mis, mas = [], [], [], []
@@ -547,11 +549,18 @@ def main(target, cfg):
 
     s = "Saved image file {} in {:.1f} s"
     if cfg['outfile']:
-        stem, _ = os.path.splitext(cfg['outfile'])
-        fig.savefig(cfg['outfile'])
+
+        if os.path.isfile(cfg['outfile']):
+            outfile = cfg['outfile']
+        else:  # is directory
+            stem, ext = os.path.splitext(os.path.split(target)[1])
+            outfile = os.path.join(cfg['outfile'], stem + '.png') 
+
+        stem, _ = os.path.splitext(outfile)  # Needed for stupidity.
+        fig.savefig(outfile)
         t3 = time.time()
-        Notice.ok(s.format(cfg['outfile'], t3-t2))
-    else:
+        Notice.ok(s.format(outfile, t3-t2))
+    else:  # Do the default: save a PNG in the same dir as the target.
         stem, _ = os.path.splitext(target)
         fig.savefig(stem)
         t3 = time.time()
@@ -603,14 +612,15 @@ if __name__ == "__main__":
                         nargs='?',
                         default='',
                         help='The path to an output file.')
+    parser.add_argument('-R', '--recursive',
+                        action='store_true',
+                        help='Descend into subdirectories.')
     args = parser.parse_args()
     target = args.filename
     with args.config as f:
         cfg = yaml.load(f)
     Notice.hr_header("Initializing")
-    Notice.info("Filename   {}".format(target))
     Notice.info("Config     {}".format(args.config.name))
-    cfg['outfile'] = args.out
 
     # Fill in 'missing' fields in cfg.
     defaults = {'tpi': 10,
@@ -639,8 +649,24 @@ if __name__ == "__main__":
         if cfg.get(k) is None:
             cfg[k] = v
 
-    # Go and do things.
-    main(target, cfg)
+    cfg['outfile'] = args.out
 
-    # We're back! And we're done...
-    Notice.hr_header("Done")
+    # Gather files to work on, then go and do them.
+    if os.path.isfile(target):
+        Notice.hr_header("Processing file: {}".format(target))
+        main(target, cfg)
+        Notice.hr_header("Done")
+    elif os.path.isdir(target):
+        if args.recursive:
+            Notice.info("Looking for SEGY files in {} and its subdirectories".format(target))
+            for target in utils.walk(target, "\\.se?gy$"):
+                Notice.hr_header("Processing file: {}".format(target))
+                main(target, cfg)
+        else:
+            Notice.info("Finding SEGY files in {}".format(target))
+            for target in utils.listdir(target, "\\.se?gy$"):
+                Notice.hr_header("Processing file: {}".format(target))
+                main(target, cfg)
+        Notice.hr_header("Done")
+    else:
+        Notice.fail("Not a file or directory.")
