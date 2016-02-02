@@ -104,6 +104,33 @@ def stain_paper(image):
     return
 
 
+def add_scribble(image):
+    """
+    Add a scribble.
+    """
+    files = list(listdir('resources', 'scribble_[0-9]+.png'))
+    fname = np.random.choice(files)
+    scribble = Image.open(fname)
+
+    # Adjust opacity.
+    scribble2 = max_opacity(scribble, 0.85)
+
+    # Shrink a bit
+    scribble2.thumbnail((256, 256), Image.ANTIALIAS)
+
+    # Rotate the stain by a small random amount.
+    angle = (np.random.random() - 0.5) * 20
+    scribble2 = scribble2.rotate(angle, resample=Image.BICUBIC, expand=True)
+
+    # Find a random place near the upper corner.
+    x = np.random.randint(image.size[0]-(1.5*scribble2.size[0]), image.size[0]-(0.8*scribble2.size[0]))
+    y = np.random.randint(0, scribble2.size[1])
+
+    # Do it.
+    image.paste(scribble2, (x, y), scribble2)
+    return
+
+
 def add_a_ring(image):
     """
     Add a coffee cup ring.
@@ -119,8 +146,8 @@ def add_a_ring(image):
     stain2 = stain2.rotate(angle, resample=Image.BICUBIC, expand=True)
 
     # Find a random place for it.
-    x = np.random.randint(-stain.size[0]/2, image.size[0]-stain2.size[0]/2)
-    y = np.random.randint(-stain.size[1]/2, image.size[1]-stain2.size[1]/2)
+    x = np.random.randint(-stain2.size[0]/2, image.size[0]-stain2.size[0]/2)
+    y = np.random.randint(-stain2.size[1]/2, image.size[1]-stain2.size[1]/2)
 
     # Do it.
     image.paste(stain2, (x, y), stain2)

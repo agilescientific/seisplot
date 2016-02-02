@@ -542,7 +542,7 @@ def main(target, cfg):
     #####################################################################
     Notice.hr_header("Saving")
 
-    if cfg['stain_paper'] or cfg['coffee_rings'] or cfg['distort']:
+    if cfg['stain_paper'] or cfg['coffee_rings'] or cfg['distort'] or cfg['scribble']:
         stupid = True
     else:
         stupid = False
@@ -582,6 +582,8 @@ def main(target, cfg):
     if cfg['stain_paper']:
         utils.stain_paper(stupid_image)
     utils.add_rings(stupid_image, cfg['coffee_rings'])
+    if cfg['scribble']:
+        utils.add_scribble(stupid_image)
     stupid_image.save(stem + ".stupid.png")
 
     s = "Saved stupid file stupid.png in {:.1f} s"
@@ -634,7 +636,7 @@ if __name__ == "__main__":
                 'lineweight': 0.2,
                 'cmap': 'Greys',
                 'fontsize': 10,
-                'watermark_text': 'COPYRIGHTED MATERIAL',
+                'watermark_text': '',  # None by default
                 'watermark_size': 14,
                 'watermark_colour': 'white',
                 'watermark_rotation': 33,
@@ -643,6 +645,7 @@ if __name__ == "__main__":
                 'stain_paper': None,
                 'coffee_rings': 0,
                 'distort': False,
+                'scribble': False,
                 }
 
     for k, v in defaults.items():

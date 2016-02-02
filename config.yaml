@@ -3,7 +3,7 @@
 # Configuration file for seisplot.py
 
 # Traces per inch   (less -> bigger plot)
-tpi: 25
+tpi: 20
 
 # Inches per second (more -> bigger plot)
 ips: 3
@@ -25,26 +25,27 @@ colour:
   - 0
   - 0
   - 0
-opacity: 0.5
+opacity: 0.67
 
 # Wiggle plot lineweight
 lineweight: 0.2
 
 # Colormap for variable density
-# e.g. matplotlib colourbars: Greys (black to white), RdBu, etc.
+# e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
-cmap: Greys
+cmap: RdYlBu
 
 # Fontsize
 fontsize: 10
 
 # Watermark
-watermark_text: © A Seismic Company
-watermark_size: 12
-watermark_colour: black  # only white works well for now...
-watermark_rotation: 33  # degrees
-watermark_cols: 4  # in x direction
+# watermark_text: © A Seismic Company
+# watermark_size: 12
+# watermark_colour: black  # only white works well for now...
+# watermark_rotation: 33  # degrees
+# watermark_cols: 4  # in x direction
 
 # Stupid things
 stain_paper: no
 coffee_rings: 0
+scribble: no
