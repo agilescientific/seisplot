@@ -3,7 +3,7 @@
 # Configuration file for seisplot.py
 
 # Traces per inch   (less -> bigger plot)
-tpi: 20
+tpi: 50
 
 # Inches per second (more -> bigger plot)
 ips: 3
@@ -33,7 +33,7 @@ lineweight: 0.2
 # Colormap for variable density
 # e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
-cmap: RdYlBu
+cmap: RdBu
 
 # Fontsize
 fontsize: 10

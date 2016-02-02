@@ -6,11 +6,9 @@ flake8=2.5.1=py34_0
 freetype=2.5.5=0
 future=0.15.2=py34_0
 jbig=2.1=0
-jpeg=8d=1
 libpng=1.6.17=0
 libtiff=4.0.6=1
 libxml2=2.9.2=0
-libxslt=1.1.28=2
 lxml=3.5.0=py34_0
 matplotlib=1.5.1=np110py34_0
 mccabe=0.3.1=py34_0
