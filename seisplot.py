@@ -433,7 +433,6 @@ def main(target, cfg):
         seismic_left = (ml + wsl + mm) / w
 
     adj = max(0, h - h_reqd) / 2
-    print(h_reqd, h, adj)
     seismic_bottom = (mb / h) + adj / h
     seismic_width_fraction = seismic_width / w
     seismic_height_fraction = seismic_height / h

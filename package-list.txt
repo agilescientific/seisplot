@@ -1,6 +1,5 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
-# platform: osx-64
 cycler=0.9.0=py34_0
 flake8=2.5.1=py34_0
 freetype=2.5.5=0
