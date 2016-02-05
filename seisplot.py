@@ -233,7 +233,7 @@ def plot_header(head_ax, s, fs):
     head_ax.text(40, 42,
                  'plot by github.com/agile-geoscience/seisplot',
                  size=fs, color='lightgray',
-                 ha='right', va='top'
+                 ha=cfg['sidelabel'], va='top'
                  )
     return head_ax
 
@@ -343,8 +343,8 @@ def plot_title(title_ax, title, fs):
     Add a title.
     """
     title_ax.text(1.0, 0.0, title, size=fs,
-                  horizontalalignment='right',
-                  verticalalignment='bottom')
+                  ha=cfg['sidelabel'],
+                  va='bottom')
     title_ax.axis('off')
     return title_ax
 
@@ -367,7 +367,6 @@ def main(target, cfg):
     tbase = 0.001 * np.arange(0, nsamples * dt, dt)
     tstart = 0
     tend = np.amax(tbase)
-    wsd = ntraces / cfg['tpi']
 
     # Make the data array.
     data = np.vstack([t.data for t in section.traces]).T
@@ -393,7 +392,7 @@ def main(target, cfg):
     Notice.info("clip_val   {}".format(clip_val))
 
     t1 = time.time()
-    Notice.ok("Read data successfully in {:.1f} s".format(t1-t0))
+    Notice.ok("Read data in {:.1f} s".format(t1-t0))
 
     #####################################################################
     #
@@ -405,33 +404,54 @@ def main(target, cfg):
     ##################################
     # Plot size parameters
     # Some constants
-    wsl = 6  # Width of sidelabel
-    mih = 10  # Minimum plot height
-    fhh = 5  # File header height
-    m = 0.5  # margin in inches
+    fs = cfg['fontsize']
+    wsl = 6  # Width of sidelabel, inches
+    mih = 12  # Minimum plot height, inches
+    fhh = 5  # File header box height, inches
+    m = 0.5  # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
-    mt, mr, mb, ml,  = m,  2 * m, m, 2 * m
-    mm = mr / 2  # padded margin between seismic and label
+    mt, mr, mb, ml  = m,  2 * m, m, 2 * m
+    mm = m  # padded margin between seismic and label
 
-    # Width is determined by tpi, plus a constant for the sidelabel, plus margins.
-    w = ml + wsd + mm + wsl + mr
+    # Width is determined by seismic width, plus sidelabel, plus margins.
+    seismic_width = ntraces / cfg['tpi']
+    w = ml + seismic_width + mm + wsl + mr  # inches
 
-    # Height is given by ips, but with a minimum of 8 inches
-    h_reqd = cfg['ips'] * (tbase[-1] - tbase[0]) / 1000 + mt + mb
+    # Height is given by ips, but with a minimum of mih inches
+    seismic_height = cfg['ips'] * (tbase[-1] - tbase[0]) / 1000
+    h_reqd =  mb + seismic_height + mt  # inches
     h = max(mih, h_reqd)
 
-    # More settings
-    ssl = (ml + wsd + mm) / w  # Start of side label (ratio)
-    fs = cfg['fontsize']
+    # Calculate where to start sidelabel and seismic data.
+    # Depends on whether sidelabel is on the left or right.
+    if cfg['sidelabel'] == 'right':
+        ssl = (ml + seismic_width + mm) / w  # Start of side label (ratio)
+        seismic_left = ml / w
+    else:
+        ssl = ml / w
+        seismic_left = (ml + wsl + mm) / w
 
+    adj = max(0, h - h_reqd) / 2
+    print(h_reqd, h, adj)
+    seismic_bottom = (mb / h) + adj / h
+    seismic_width_fraction = seismic_width / w
+    seismic_height_fraction = seismic_height / h
+
+    # Publish some notices so user knows plot size.
     Notice.info("Width of plot   {} in".format(w))
     Notice.info("Height of plot  {} in".format(h))
 
     ##################################
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
-    ax = fig.add_axes([ml / w, mb / h, wsd / w, (h - mb - mt) / h])
+
+    # Add the main seismic axis.
+    ax = fig.add_axes([seismic_left,
+                       seismic_bottom,
+                       seismic_width_fraction,
+                       seismic_height_fraction
+                       ])
 
     # make parasitic axes for labeling CDP number
     par1 = ax.twiny()
@@ -458,7 +478,7 @@ def main(target, cfg):
     padx = 0.75 / w   # 0.75 inch
     cstrip = 0.3/h   # color_strip height = 0.3 in
     charth = 1.5/h   # height of charts = 1.5 in
-    chartw = 1 - ssl - mr/w - padx
+    chartw = wsl/w - mr/w - padx  # or ml/w for left-hand sidelabel -- same thing
     chartx = (ssl + padx)
     histy = 1.5 * mb/h + charth + pady
     # Plot colourbar under histogram
@@ -625,7 +645,8 @@ if __name__ == "__main__":
     Notice.info("Config     {}".format(args.config.name))
 
     # Fill in 'missing' fields in cfg.
-    defaults = {'tpi': 10,
+    defaults = {'sidelabel': 'right',
+                'tpi': 10,
                 'ips': 1,
                 'skip': 2,
                 'display': 'vd',

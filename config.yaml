@@ -2,6 +2,9 @@
 # config.yaml
 # Configuration file for seisplot.py
 
+# Side label side
+sidelabel: right
+
 # Traces per inch   (less -> bigger plot)
 tpi: 50
 
