@@ -3,6 +3,19 @@ seisplot
 
 A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/26/what-is-seg-y.html>`_. 
 
+.. image:: https://img.shields.io/badge/status-alpha-orange.svg
+    :target: #
+    :alt: Project status
+
+.. image:: https://img.shields.io/badge/python-3.4,_3.5-blue.svg
+    :target: #
+    :alt: Python version
+
+.. image:: https://img.shields.io/badge/license-Apache_2.0-blue.svg
+    :target: http://www.apache.org/licenses/LICENSE-2.0
+    :alt: License
+
+
 Installation
 ------------
 
