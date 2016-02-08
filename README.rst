@@ -7,6 +7,10 @@ A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/
     :target: #
     :alt: Project status
 
+.. image:: https://img.shields.io/github/release/agile-geoscience/seisplot.svg
+    :target: #
+    :alt: Release
+
 .. image:: https://img.shields.io/badge/python-3.4,_3.5-blue.svg
     :target: #
     :alt: Python version
