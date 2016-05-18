@@ -67,14 +67,15 @@ def wiggle_plot(ax, data, tbase, ntraces,
     return ax
 
 
-def decorate_seismic(ax, ntraces, tickfmt, cfg):
+def decorate_seismic(ax, traces, trace_label_text, tickfmt, cfg):
     """
     Add various things to the seismic plot.
     """
     fs = cfg['fontsize']
-    ax.set_xlim([0, ntraces])
+    min_tr, max_tr = traces
+    ax.set_xlim([min_tr, max_tr])
     ax.set_ylabel('Two-way time [ms]', fontsize=fs - 2)
-    ax.set_xlabel('Trace no.', fontsize=fs - 2, horizontalalignment='center')
+    ax.set_xlabel(trace_label_text, fontsize=fs - 2, horizontalalignment='center')
     ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
     ax.set_yticklabels(ax.get_yticks(), fontsize=fs - 2)
     ax.xaxis.set_major_formatter(tickfmt)
@@ -361,6 +362,10 @@ def main(target, cfg):
     # Calculate some things.
     # NB Getting nsamples and dt from the first trace assumes that all
     # traces are the same length, which is not a safe assumption in SEGY v2.
+    ninlines = section.traces[-1].header.trace_sequence_number_within_line
+    last_tr = section.traces[-1].header.trace_sequence_number_within_segy_file
+    nxlines = last_tr / ninlines
+
     nsamples = section.traces[0].header.number_of_samples_in_this_trace
     dt = section.traces[0].header.sample_interval_in_ms_for_this_trace
     ntraces = len(section.traces)
@@ -371,13 +376,49 @@ def main(target, cfg):
     # Make the data array.
     data = np.vstack([t.data for t in section.traces]).T
 
+    threed = False
+    if nxlines > 1:  # Then it's a 3D and `data` is an ensemble.
+        threed = True
+        cube = np.reshape(data.T, (ninlines, nxlines, nsamples))
+        l = cfg['number']
+        if cfg['direction'].lower()[0] == 'i':
+            direction = 'inline'
+            ntraces = nxlines
+            l *= ninlines if (l < 1) else 1
+            data = cube[l, :, :].T
+        else:
+            direction = 'xline'
+            ntraces = ninlines
+            l *= nxlines if (l < 1) else 1
+            data = cube[:, l, :].T
+
     # Collect some other data. Use a for loop because there are several.
     elev, esp, ens, tsq = [], [], [], []
     for i, trace in enumerate(section.traces):
         elev.append(trace.header.receiver_group_elevation)
         esp.append(trace.header.energy_source_point_number)
-        ens.append(trace.header.ensemble_number)
         tsq.append(trace.header.trace_sequence_number_within_line)
+
+        if threed:
+            trs = []
+            if direction == 'inline':
+                cdp_label_text = 'Crossline number'
+                trace_label_text = 'Trace number'
+                ens.append(trace.header.for_3d_poststack_data_this_field_is_for_cross_line_number)
+                trs.append(trace.header.for_3d_poststack_data_this_field_is_for_in_line_number)
+            else:
+                cdp_label_text = 'Inline number'
+                trace_label_text = 'Trace number'
+                ens.append(trace.header.for_3d_poststack_data_this_field_is_for_in_line_number)
+                trs.append(trace.header.for_3d_poststack_data_this_field_is_for_cross_line_number)
+            line_no = min(trs)
+        else:
+            cdp_label_text = 'CDP number'
+            trace_label_text = 'Trace number'
+            ens.append(trace.header.ensemble_number)
+        min_tr, max_tr = 0, ntraces
+
+    traces = (min_tr, max_tr)
 
     clip_val = np.percentile(data, cfg['percentile'])
 
@@ -457,13 +498,16 @@ def main(target, cfg):
     par1.spines["top"].set_position(("axes", 1.0))
     tickfmt = mtick.FormatStrFormatter('%.0f')
     par1.plot(ens, np.zeros_like(ens))
-    par1.set_xlabel("CDP number", fontsize=fs-2)
+    par1.set_xlabel(cdp_label_text, fontsize=fs-2)
     par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
 
     # Plot title
     title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
     title_ax = plot_title(title_ax, target, fs=1.5*fs)
+    if threed:
+        title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
+
 
     # Plot text header.
     s = section.textual_file_header.decode()
@@ -490,7 +534,11 @@ def main(target, cfg):
     # Plot spectrum.
     specy = 1.5 * mb/h
     spec_ax = fig.add_axes([chartx, specy, chartw, charth])
-    spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=20, fontsize=fs)
+
+    try:
+        spec_ax = plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=20, fontsize=fs)
+    except:
+        pass
 
     # Plot seismic data.
     if cfg['display'].lower() in ['vd', 'varden', 'variable']:
@@ -540,7 +588,7 @@ def main(target, cfg):
         Notice.fail("You need to specify the type of display: wiggle or vd")
 
     # Seismic axis annotations.
-    ax = decorate_seismic(ax, ntraces, tickfmt, cfg)
+    ax = decorate_seismic(ax, traces, trace_label_text, tickfmt, cfg)
 
     # Watermark.
     if cfg['watermark_text']:
@@ -644,7 +692,9 @@ if __name__ == "__main__":
     Notice.info("Config     {}".format(args.config.name))
 
     # Fill in 'missing' fields in cfg.
-    defaults = {'sidelabel': 'right',
+    defaults = {'line': 'inline',
+                'number': 0.5,
+                'sidelabel': 'right',
                 'tpi': 10,
                 'ips': 1,
                 'skip': 2,
