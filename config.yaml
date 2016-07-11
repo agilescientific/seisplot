@@ -3,7 +3,7 @@
 # Configuration file for seisplot.py
 
 # 3D inline or xline, ignored for 2D data
-# Fractions are interpreted as fraction of volume in that direction.
+# Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
 direction: xline
 number: 5
 
