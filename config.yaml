@@ -65,3 +65,5 @@ scribble: no
 
 # Output resolution
 dpi: 300
+# Plot filename title
+fname_title: False

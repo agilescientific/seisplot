@@ -178,17 +178,18 @@ def main(target, cfg):
     par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
 
-    # Plot title
-    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
-    title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
-    if threed:
-        title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
+    # Plot filename as a title in upper left (if cfg[fname_title]=True)
+    if cfg['fname_title']:
+        title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
+        title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
+        if threed:
+            title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
 
     # Plot text header.
     s = section.textual_file_header.decode()
     start = (h - 1.5*mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
-    head_ax = plotter.plot_header(head_ax, s, fs=fs-1, cfg=cfg)
+    head_ax = plotter.plot_header(head_ax, s, fs=fs-2, cfg=cfg)
 
     # Plot histogram.
     # Params for histogram plot
