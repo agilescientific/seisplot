@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-Simple seismic plotter.
+Utility functions for seisplot.
 
-:copyright: 2015 Agile Geoscience
+:copyright: 2016 Agile Geoscience
 :license: Apache 2.0
 """
 # Standard
