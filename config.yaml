@@ -11,7 +11,7 @@ number: 5
 sidelabel: right
 
 # Traces per inch   (less -> bigger plot)
-tpi: 100
+tpi: 50
 
 # Inches per second (more -> bigger plot)
 ips: 3
@@ -20,7 +20,7 @@ ips: 3
 skip: 1
 
 # Seismic data display parameters (wiggle, varden, both):
-display: vd
+display: both
 
 # Multiplication factor for amplitudes 
 gain: 2
@@ -41,24 +41,27 @@ lineweight: 0.2
 # Colormap for variable density
 # e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
-cmap: RdBu
+cmap: Greys
 
 # Fontsize
 fontsize: 10
 
 # Watermark
-watermark_text: © A Seismic Company
-watermark_size: 16
-watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
-watermark_style: normal   # normal, italic, oblique
-watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
-watermark_colour: black
-watermark_alpha: 0.5
-watermark_angle: 33  # degrees
-watermark_cols: 4  # in x direction
-watermark_rows: 8  # in x direction
+#watermark_text: © A Seismic Company
+#watermark_size: 16
+#watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
+#watermark_style: normal   # normal, italic, oblique
+#watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
+#watermark_colour: black
+#watermark_alpha: 0.5
+#watermark_angle: 33  # degrees
+#watermark_cols: 4  # in x direction
+#watermark_rows: 8  # in x direction
 
 # Stupid things
 stain_paper: no
 coffee_rings: 0
 scribble: no
+
+# Output resolution
+dpi: 300

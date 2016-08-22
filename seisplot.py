@@ -304,7 +304,7 @@ def main(target, cfg):
             outfile = os.path.join(cfg['outfile'], stem + '.png')
 
         stem, _ = os.path.splitext(outfile)  # Needed for stupidity.
-        fig.savefig(outfile)
+        fig.savefig(outfile, dpi=cfg['dpi'])
         t3 = time.time()
         Notice.ok(s.format(outfile, t3-t2))
     else:  # Do the default: save a PNG in the same dir as the target.
@@ -314,7 +314,7 @@ def main(target, cfg):
         Notice.ok(s.format(stem+'.png', t3-t2))
 
     if stupid:
-        fig.savefig(stem + ".stupid.png")
+        fig.savefig(stem + ".stupid.png", dpi=cfg['dpi'])
     else:
         return
 
@@ -399,6 +399,7 @@ if __name__ == "__main__":
                 'coffee_rings': 0,
                 'distort': False,
                 'scribble': False,
+                'dpi': 100,
                 }
 
     for k, v in defaults.items():
