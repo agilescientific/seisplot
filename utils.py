@@ -16,6 +16,40 @@ from PIL import Image
 import numpy as np
 
 
+HEADERS = [
+    'for_3d_poststack_data_this_field_is_for_cross_line_number',  # sawtooth for 3d
+    'for_3d_poststack_data_this_field_is_for_in_line_number',     # steps for 3d
+    'trace_number_within_the_ensemble',  # nothing for 2d, same as crossline number for 3d
+    'trace_sequence_number_within_line',  # nothing for 2d, zero-based sawtooth for 3d
+    'trace_sequence_number_within_segy_file',  # zero-based monotonic for 2d and 3d
+    'ensemble_number',  # trace-number-based monotonic for 2d
+    'trace_number_within_the_ensemble',
+    'original_field_record_number',
+    'energy_source_point_number',
+    'trace_number_within_the_original_field_record',
+#    'trace_identification_code',
+]
+
+
+def get_pattern_from_stream(stream, pattern_function):
+    """
+    Return the first non-zero-based monotonic header.
+    If there isn't one, return the first monotonic header.
+    """
+    candidates = []
+    for header in HEADERS:
+        data = [t.header.__dict__[header] for t in stream.traces]
+        if pattern_function(data):
+            candidates.append(data)
+    for candidate in candidates:
+        if candidate[0] > 0:
+            return candidate
+    if candidates:
+        return candidates[0]
+    else:
+        return None
+
+
 def walk(directory, match=None):
     """
     Find files whose names match some regex. Like `fnmatch` but with regex.
