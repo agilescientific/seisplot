@@ -16,6 +16,37 @@ from PIL import Image
 import numpy as np
 
 
+DEFAULTS = {'line': 'inline',
+            'direction': 'inline',
+            'number': 0.5,
+            'sidelabel': 'right',
+            'tpi': 10,
+            'ips': 1,
+            'skip': 2,
+            'display': 'vd',
+            'gain': 1.0,
+            'percentile': 99.0,
+            'colour': [0, 0, 0],
+            'opacity': 1.0,
+            'lineweight': 0.2,
+            'cmap': 'Greys',
+            'fontsize': 10,
+            'watermark_text': '',  # None by default
+            'watermark_size': 14,
+            'watermark_family': 'sans-serif',
+            'watermark_style': 'normal',
+            'watermark_weight': 'normal',
+            'watermark_colour': 'white',
+            'watermark_alpha': 0.5,
+            'watermark_angle': 33,
+            'watermark_cols': 6,
+            'watermark_rows': 0,  # automatic
+            'stain_paper': None,
+            'coffee_rings': 0,
+            'distort': False,
+            'scribble': False,
+            }
+
 HEADERS = [
     'for_3d_poststack_data_this_field_is_for_cross_line_number',  # sawtooth for 3d
     'for_3d_poststack_data_this_field_is_for_in_line_number',     # steps for 3d
@@ -48,39 +79,6 @@ def get_pattern_from_stream(stream, pattern_function):
         return candidates[0]
     else:
         return None
-
-
-def walk(directory, match=None):
-    """
-    Find files whose names match some regex. Like `fnmatch` but with regex.
-    Like `utils.listdir()` but recursive. Case insensitive.
-    Args:
-        directory (str): The directory to start at.
-    Yields:
-        str: Full path to each file in turn.
-    """
-    for path, dirs, files in os.walk(directory):
-        for f in files:
-            if match:
-                if not re.search(match, f, flags=re.IGNORECASE):
-                    continue
-            yield os.path.join(path, f)
-
-
-def listdir(directory, match=None):
-    """
-    Wrapper for `os.listdir()` that returns full paths. A bit like
-    `utils.walk()` but not recursive. Case insensitive.
-    Args:
-        directory (str): The directory to list.
-    Yields:
-        str: Full path to each file in turn.
-    """
-    for f in os.listdir(directory):
-        if match:
-            if not re.search(match, f, flags=re.IGNORECASE):
-                continue
-        yield os.path.join(directory, f)
 
 
 def get_trace_indices(y, ntraces, random=False):

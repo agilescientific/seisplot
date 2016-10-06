@@ -10,6 +10,7 @@ Simple seismic plotter.
 import argparse
 import os
 import time
+import glob
 
 # Import 3rd party.
 import yaml
@@ -18,9 +19,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from PIL import Image
 
-from obspy.segy.segy import readSEGY
-
 # Import our stuff.
+from seismic import Seismic
 from notice import Notice
 import utils
 import plotter
@@ -32,81 +32,28 @@ def main(target, cfg):
     """
     t0 = time.time()
 
-    # Read the file.
-    section = readSEGY(target, unpack_headers=True)
+    # Read the file and get the data.
+    s = Seismic.from_segy(target)
+    direction = 'inline' if (cfg['direction'].lower()[0] == 'i') else 'xline'
+    data = s.get_line(direction, cfg['number'])
 
-    # Calculate some things.
-    # NB Getting nsamples and dt from the first trace assumes that all
-    # traces are the same length, which is not a safe assumption in SEGY v2.
-    ninlines = section.traces[-1].header.trace_sequence_number_within_line
-    last_tr = section.traces[-1].header.trace_sequence_number_within_segy_file
-    nxlines = last_tr / ninlines
-
-    nsamples = section.traces[0].header.number_of_samples_in_this_trace
-    dt = section.traces[0].header.sample_interval_in_ms_for_this_trace
-    ntraces = len(section.traces)
-    tbase = 0.001 * np.arange(0, nsamples * dt, dt)
-    tstart = 0
-    tend = np.amax(tbase)
-
-    # Make the data array.
-    data = np.vstack([t.data for t in section.traces]).T
-
-    threed = False
-    if nxlines > 1:  # Then it's a 3D and `data` is an ensemble.
-        threed = True
-        cube = np.reshape(data.T, (ninlines, nxlines, nsamples))
-        l = cfg['number']
-        if cfg['direction'].lower()[0] == 'i':
-            direction = 'inline'
-            ntraces = nxlines
-            l *= ninlines if (l < 1) else 1
-            data = cube[l, :, :].T
-        else:
-            direction = 'xline'
-            ntraces = ninlines
-            l *= nxlines if (l < 1) else 1
-            data = cube[:, l, :].T
-
-    # Collect some other data. Use a for loop because there are several.
-    elev, esp, ens, tsq = [], [], [], []
-    for i, trace in enumerate(section.traces):
-        elev.append(trace.header.receiver_group_elevation)
-        esp.append(trace.header.energy_source_point_number)
-        tsq.append(trace.header.trace_sequence_number_within_line)
-
-        if threed:
-            trs = []
-            if direction == 'inline':
-                cdp_label_text = 'Crossline number'
-                trace_label_text = 'Trace number'
-                ens.append(trace.header.for_3d_poststack_data_this_field_is_for_cross_line_number)
-                trs.append(trace.header.for_3d_poststack_data_this_field_is_for_in_line_number)
-            else:
-                cdp_label_text = 'Inline number'
-                trace_label_text = 'Trace number'
-                ens.append(trace.header.for_3d_poststack_data_this_field_is_for_in_line_number)
-                trs.append(trace.header.for_3d_poststack_data_this_field_is_for_cross_line_number)
-            line_no = min(trs)
-        else:
-            cdp_label_text = 'CDP number'
-            trace_label_text = 'Trace number'
-            ens.append(trace.header.ensemble_number)
-        min_tr, max_tr = 0, ntraces
-
-    traces = (min_tr, max_tr)
+    if s.ndim == 2:
+        x_label_text = 'CDP number'
+    else:
+        x_label_text = 'Crossline number' if direction=='inline' else 'Inline number'
+    tr_label_text = 'Trace number'
 
     clip_val = np.percentile(data, cfg['percentile'])
 
     # Notify user of parameters
-    Notice.info("n_traces   {}".format(ntraces))
-    Notice.info("n_samples  {}".format(nsamples))
-    Notice.info("dt         {}".format(dt))
-    Notice.info("t_start    {}".format(tstart))
-    Notice.info("t_end      {}".format(tend))
-    Notice.info("max_val    {}".format(np.amax(data)))
-    Notice.info("min_val    {}".format(np.amin(data)))
-    Notice.info("clip_val   {}".format(clip_val))
+    Notice.info("n_traces   {}".format(s.ntraces))
+    Notice.info("n_samples  {}".format(s.nsamples))
+    Notice.info("dt         {}".format(s.dt))
+    Notice.info("t_start    {}".format(s.tstart))
+    Notice.info("t_end      {}".format(s.tend))
+    Notice.info("max_val    {:.3f}".format(np.amax(data)))
+    Notice.info("min_val    {:.3f}".format(np.amin(data)))
+    Notice.info("clip_val   {:.3f}".format(clip_val))
 
     t1 = time.time()
     Notice.ok("Read data in {:.1f} s".format(t1-t0))
@@ -132,11 +79,11 @@ def main(target, cfg):
     mm = m  # padded margin between seismic and label
 
     # Width is determined by seismic width, plus sidelabel, plus margins.
-    seismic_width = ntraces / cfg['tpi']
+    seismic_width = s.ntraces / cfg['tpi']
     w = ml + seismic_width + mm + wsl + mr  # inches
 
     # Height is given by ips, but with a minimum of mih inches
-    seismic_height = cfg['ips'] * (tbase[-1] - tbase[0]) / 1000
+    seismic_height = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
     h_reqd = mb + seismic_height + mt  # inches
     h = max(mih, h_reqd)
 
@@ -169,29 +116,28 @@ def main(target, cfg):
                        seismic_height_fraction
                        ])
 
-    # make parasitic axes for labeling CDP number
+    # Make parasitic axes for labeling CDP number.
     par1 = ax.twiny()
     par1.spines["top"].set_position(("axes", 1.0))
     tickfmt = mtick.FormatStrFormatter('%.0f')
-    par1.plot(ens, np.zeros_like(ens))
-    par1.set_xlabel(cdp_label_text, fontsize=fs-2)
+    par1.plot(s.xlines, np.zeros_like(s.xlines))
+    par1.set_xlabel(x_label_text, fontsize=fs-2)
     par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
     par1.xaxis.set_major_formatter(tickfmt)
 
-    # Plot title
+    # Plot title.
     title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
     title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
-    if threed:
+    if s.ndim == 3:
         title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
 
     # Plot text header.
-    s = section.textual_file_header.decode()
     start = (h - 1.5*mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
-    head_ax = plotter.plot_header(head_ax, s, fs=fs-1, cfg=cfg)
+    head_ax = plotter.plot_header(head_ax, s.header, fs=fs-1, cfg=cfg)
 
     # Plot histogram.
-    # Params for histogram plot
+    # Params for histogram plot.
     pady = 0.75 / h  # 0.75 inch
     padx = 0.75 / w   # 0.75 inch
     cstrip = 0.3/h   # color_strip height = 0.3 in
@@ -199,10 +145,10 @@ def main(target, cfg):
     chartw = wsl/w - mr/w - padx  # or ml/w for left-hand sidelabel; same thing
     chartx = (ssl + padx)
     histy = 1.5 * mb/h + charth + pady
-    # Plot colourbar under histogram
+    # Plot colourbar under histogram.
     clrbar_ax = fig.add_axes([chartx, histy - cstrip, chartw, cstrip])
     clrbar_ax = plotter.plot_colourbar(clrbar_ax, cmap=cfg['cmap'])
-    # Plot histogram itself
+    # Plot histogram itself.
     hist_ax = fig.add_axes([chartx, histy, chartw, charth])
     hist_ax = plotter.plot_histogram(hist_ax,
                                      data,
@@ -215,64 +161,45 @@ def main(target, cfg):
     spec_ax = fig.add_axes([chartx, specy, chartw, charth])
 
     try:
-        spec_ax = plotter.plot_spectrum(spec_ax,
-                                        data,
-                                        dt,
-                                        tickfmt,
-                                        ntraces=20,
-                                        fontsize=fs)
+        spec_ax = s.plot_spectrum(ax=spec_ax,
+                                  tickfmt=tickfmt,
+                                  ntraces=20,
+                                  fontsize=fs)
     except:
         pass
 
     # Plot seismic data.
-    if cfg['display'].lower() in ['vd', 'varden', 'variable']:
-        _ = ax.imshow(data,
+    if cfg['display'].lower() in ['vd', 'varden', 'variable', 'both']:
+        _ = ax.imshow(data.T,
                       cmap=cfg['cmap'],
                       clim=[-clip_val, clip_val],
-                      extent=[0, ntraces, tbase[-1], tbase[0]],
+                      extent=[0, s.ntraces, 1000*s.tbasis[-1], s.tbasis[0]],
                       aspect='auto'
                       )
 
-    elif cfg['display'].lower() == 'wiggle':
-        ax = plotter.wiggle_plot(ax,
-                                 data,
-                                 tbase,
-                                 ntraces,
-                                 skip=cfg['skip'],
-                                 gain=cfg['gain'],
-                                 rgb=cfg['colour'],
-                                 alpha=cfg['opacity'],
-                                 lw=cfg['lineweight']
-                                 )
+    if cfg['display'].lower() in ['wiggle', 'both']:
+        ax = s.wiggle_plot(cfg['number'], direction,
+                           ax=ax,
+                           skip=cfg['skip'],
+                           gain=cfg['gain'],
+                           rgb=cfg['colour'],
+                           alpha=cfg['opacity'],
+                           lw=cfg['lineweight']
+                           )
+
+    if cfg['display'].lower() == 'wiggle':
         ax.set_ylim(ax.get_ylim()[::-1])
 
-    elif cfg['display'].lower() == 'both':
-        # variable density goes on first
-        _ = ax.imshow(data,
-                      cmap=cfg['cmap'],
-                      clim=[-clip_val, clip_val],
-                      extent=[0, ntraces, tbase[-1], tbase[0]],
-                      aspect='auto'
-                      )
-
-        # wiggle plots go on top
-        ax = plotter.wiggle_plot(ax,
-                                 data,
-                                 tbase,
-                                 ntraces,
-                                 skip=cfg['skip'],
-                                 gain=cfg['gain'],
-                                 rgb=cfg['colour'],
-                                 alpha=cfg['opacity'],
-                                 lw=cfg['lineweight']
-                                 )
-        # ax.set_ylim(ax.get_ylim()[::-1])
-
-    else:
-        Notice.fail("You need to specify the type of display: wiggle or vd")
+    if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
+        Notice.fail("You need to specify the type of display: wiggle, vd, or both.")
+        return
 
     # Seismic axis annotations.
-    ax = plotter.decorate_seismic(ax, traces, trace_label_text, tickfmt, cfg)
+    ax = plotter.decorate_seismic(ax,
+                                  s.trace_range(direction=direction),
+                                  tr_label_text,
+                                  tickfmt,
+                                  cfg)
 
     # Watermark.
     if cfg['watermark_text']:
@@ -333,9 +260,9 @@ def main(target, cfg):
         utils.add_scribble(stupid_image)
     stupid_image.save(stem + ".stupid.png")
 
-    s = "Saved stupid file stupid.png in {:.1f} s"
+    s = "Saved stupid file {}.stupid.png in {:.1f} s"
     t4 = time.time()
-    Notice.ok(s.format(t4-t3))
+    Notice.ok(s.format(stem, t4-t3))
 
     return
 
@@ -349,18 +276,18 @@ if __name__ == "__main__":
                         type=argparse.FileType('r'),
                         default="config.yaml",
                         nargs="?",
-                        help="The name of a YAML config file.")
+                        help="The name of a YAML config file. Default: config.yaml.")
     parser.add_argument('filename',
                         metavar='SEGY file',
                         type=str,
                         nargs='?',
-                        help='The path to a SEGY file.')
+                        help='The path to one or more SEGY files. Uses Unix-style pathname expansion.')
     parser.add_argument('-o', '--out',
-                        metavar='Output file',
+                        metavar='output file',
                         type=str,
                         nargs='?',
                         default='',
-                        help='The path to an output file.')
+                        help='The path to an output file. Default: same as input file, but with png file extension.')
     parser.add_argument('-R', '--recursive',
                         action='store_true',
                         help='Descend into subdirectories.')
@@ -372,57 +299,11 @@ if __name__ == "__main__":
     Notice.info("Config     {}".format(args.config.name))
 
     # Fill in 'missing' fields in cfg.
-    defaults = {'line': 'inline',
-                'number': 0.5,
-                'sidelabel': 'right',
-                'tpi': 10,
-                'ips': 1,
-                'skip': 2,
-                'display': 'vd',
-                'gain': 1.0,
-                'percentile': 99.0,
-                'colour': [0, 0, 0],
-                'opacity': 1.0,
-                'lineweight': 0.2,
-                'cmap': 'Greys',
-                'fontsize': 10,
-                'watermark_text': '',  # None by default
-                'watermark_size': 14,
-                'watermark_family': 'sans-serif',
-                'watermark_style': 'normal',
-                'watermark_weight': 'normal',
-                'watermark_colour': 'white',
-                'watermark_rotation': 33,
-                'watermark_cols': 6,
-                'watermark_rows': 0,  # automatic
-                'stain_paper': None,
-                'coffee_rings': 0,
-                'distort': False,
-                'scribble': False,
-                }
-
-    for k, v in defaults.items():
-        if cfg.get(k) is None:
-            cfg[k] = v
-
+    cfg = {k: cfg.get(k, v) for k, v in utils.DEFAULTS.items()}
     cfg['outfile'] = args.out
 
-    # Gather files to work on, then go and do them.
-    if os.path.isfile(target):
-        Notice.hr_header("Processing file: {}".format(target))
-        main(target, cfg)
-        Notice.hr_header("Done")
-    elif os.path.isdir(target):
-        if args.recursive:
-            Notice.info("Looking for SEGY files in {} and its subdirectories".format(target))
-            for target in utils.walk(target, "\\.se?gy$"):
-                Notice.hr_header("Processing file: {}".format(target))
-                main(target, cfg)
-        else:
-            Notice.info("Finding SEGY files in {}".format(target))
-            for target in utils.listdir(target, "\\.se?gy$"):
-                Notice.hr_header("Processing file: {}".format(target))
-                main(target, cfg)
-        Notice.hr_header("Done")
-    else:
-        Notice.fail("Not a file or directory.")
+    # Go do it!
+    for t in glob.glob(target):
+            Notice.hr_header("Processing file: {}".format(t))
+            main(t, cfg)
+            Notice.hr_header("Done")

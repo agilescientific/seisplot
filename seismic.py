@@ -6,6 +6,8 @@ Seismic object for seisplot and beyond.
 :copyright: 2016 Agile Geoscience
 :license: Apache 2.0
 """
+from functools import partial
+
 import matplotlib.pyplot as plt
 import numpy as np
 import obspy
@@ -23,20 +25,21 @@ class Seismic(object):
         
         self.data = np.asarray(data, dtype=dtype)
         self.header = params.get('header', '')
-        self.traces = params.get('traces', self.data.shape[0])
+        self.ntraces = params.get('ntraces', self.data.shape[0])
         self.inlines = params.get('inlines', None)
         self.xlines = params.get('xlines', None)
         self.ninlines = params.get('ninlines', 1)
         self.nxlines = params.get('nxlines', 0)
-        self.tsamples = params.get('tsamples', 0)
+        self.nsamples = params.get('nsamples', self.data.shape[-1])
+        self.tstart = params.get('tstart', 0)
         self.dt = params.get('dt', 0)
 
-        if self.tsamples and self.tsamples != self.data.shape[-1]:
-            t = self.tsamples
-            self.tsamples = int(self.data.shape[-1])
-            if t != self.tsamples:
+        if self.nsamples and self.nsamples != self.data.shape[-1]:
+            t = self.nsamples
+            self.nsamples = int(self.data.shape[-1])
+            if t != self.nsamples:
                 s = "Number of time samples changed to {} to match data."
-                print(s.format(self.tsamples))
+                print(s.format(self.nsamples))
 
         # For when we have xline number but not inline number.
         # This happens when ObsPy reads a 3D.
@@ -52,6 +55,12 @@ class Seismic(object):
                 print(s.format(self.nxlines))
             self.data = self.data.reshape((self.ninlines, self.nxlines, self.data.shape[-1]))
 
+        if self.inlines is None:
+            self.inlines = np.linspace(1, self.ninlines, self.ninlines)
+        if self.xlines is None:
+            self.xlines = np.linspace(1, self.nxlines, self.nxlines)
+
+        self.tbasis = np.arange(0, self.nsamples * self.dt, self.dt)
         return
     
     @property
@@ -62,22 +71,63 @@ class Seismic(object):
     def ndim(self):
         return self.data.ndim
 
+    @property
+    def tend(self):
+        return np.amax(self.tbasis)
+
+    def trace_range(self, direction):
+        if direction.lower()[0] == 'x':
+            self.inlines[0], self.inlines[-1]
+        return self.xlines[0], self.xlines[-1]
+
     @classmethod
     def from_obspy(cls, stream, params=None):
         data = np.stack(t.data for t in stream.traces)
         if params is None:
             params = {}
-        params['dt'] = params.get('dt', stream.binary_file_header.sample_interval_in_microseconds / 1000)
-        
-        # Since we have the headers, etc, we can get some info.
-        if np.any(utils.get_pattern_from_stream(stream, patterns.sawtooth)):
-            xlines = utils.get_pattern_from_stream(stream, patterns.sawtooth)
+        dt = params.get('dt', stream.binary_file_header.sample_interval_in_microseconds)
+
+        # Make certain it winds up in seconds. Most likely 0.0005 to 0.008.
+        while dt > 0.02:
+            dt *= 0.001
+
+        params['dt'] = dt
+
+        # Since we have the headers, etc, we can try to get some info.
+
+        # Get a monotonic sequence from the headers. Will be CDPs for a 2D.
+        threed = False
+        xlines = utils.get_pattern_from_stream(stream, patterns.monotonic)
+        if np.any(xlines):
             nxlines = np.amax(xlines) - np.amin(xlines) + 1
             params['nxlines'] = params.get('nxlines') or nxlines
             params['xlines'] = params.get('xlines') or xlines
 
-        x = np.array(list(stream.textual_file_header))  # Shouldn't need to .decode()
+        # Get a sawtooth progression. Will only work for a 3D.
+        xlines = utils.get_pattern_from_stream(stream, patterns.sawtooth)
+        if np.any(xlines):
+            threed = True
+            nxlines = np.amax(xlines) - np.amin(xlines) + 1
+            params['nxlines'] = params.get('nxlines') or nxlines
+            params['xlines'] = params.get('xlines') or xlines
+
+        params['ninlines'] = 1
+        if threed:
+            inlines = utils.get_pattern_from_stream(stream, patterns.stairstep)
+            if np.any(inlines):
+                ninlines = np.amax(inlines) - np.amin(inlines) + 1
+                params['ninlines'] = params.get('ninlines') or ninlines
+                params['inlines'] = params.get('inlines') or inlines
+
+        x = np.array(list(stream.textual_file_header.decode()))
         params['header'] = '\n'.join(''.join(row) for row in x.reshape((40, 80)))
+
+        headers = {
+            'elevation': 'receiver_group_elevation',
+            'fold': 'number_of_horizontally_stacked_traces_yielding_this_trace',
+            'water_depth': 'water_depth_at_group',
+
+        }
 
         return cls(data, params=params)
 
@@ -157,6 +207,57 @@ class Seismic(object):
         ax.grid('on')
         return ax
     
+    def get_line(self, l=1, direction=None):
+        if self.ndim < 3:
+            return self.data
+        if (direction is None) or (direction.lower()[0] == 'i'):
+            if l < 1: l *= self.ninlines
+            return self.data[l, :, :]
+        else:
+            if l < 1: l *= self.nxlines
+            return self.data[:, l, :]
+
+    inline = partial(get_line, direction='i')
+    xline = partial(get_line, direction='x')
+
+    def wiggle_plot(self, l=1, direction='i',
+                    ax=None,
+                    skip=1,
+                    perc=99.0,
+                    gain=1.0,
+                    rgb=(0, 0, 0),
+                    alpha=0.5,
+                    lw=0.2):
+        """
+        Plots wiggle traces of seismic data. Skip=1, every trace, skip=2, every
+        second trace, etc.
+        """
+        if ax is None:
+            fig = plt.figure(figsize=(16,8))
+            ax = fig.add_subplot(111)
+
+        data = self.get_line(l, direction)
+        rgba = list(rgb) + [alpha]
+        sc = np.percentile(data, perc)  # Normalization factor
+        wigdata = data[::skip, :]
+        xpos = np.arange(self.ntraces)[::skip]
+
+        for x, trace in zip(xpos, wigdata):
+            # Compute high resolution trace.
+            amp = gain * trace / sc + x
+            t = self.tbasis
+            hypertime = 1000*np.linspace(t[0], t[-1], (10 * t.size - 1) + 1)
+            hyperamp = np.interp(hypertime, 1000*t, amp)
+
+            # Plot the line, then the fill.
+            ax.plot(hyperamp, hypertime, 'k', lw=lw)
+            ax.fill_betweenx(hypertime, hyperamp, x,
+                             where=hyperamp > x,
+                             facecolor=rgba,
+                             lw=0,
+                             )
+        return ax
+
     def plot(self, slc=None):
         if slc is None:
             slc = self.data.shape[0] // 2

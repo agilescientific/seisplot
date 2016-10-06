@@ -15,38 +15,6 @@ from matplotlib.colors import makeMappingArray
 import utils
 
 
-def wiggle_plot(ax, data, tbase, ntraces,
-                skip=1,
-                perc=99.0,
-                gain=1.0,
-                rgb=(0, 0, 0),
-                alpha=0.5,
-                lw=0.2):
-    """
-    Plots wiggle traces of seismic data. Skip=1, every trace, skip=2, every
-    second trace, etc.
-    """
-    rgba = list(rgb) + [alpha]
-    sc = np.percentile(data, perc)  # Normalization factor
-    wigdata = data[:, ::skip]
-    xpos = np.arange(ntraces)[::skip]
-
-    for x, trace in zip(xpos, np.transpose(wigdata)):
-        # Compute high resolution trace for aesthetics.
-        amp = gain * trace / sc + x
-        hypertime = np.linspace(tbase[0], tbase[-1], (10 * tbase.size - 1) + 1)
-        hyperamp = np.interp(hypertime, tbase, amp)
-
-        # Plot the line, then the fill.
-        ax.plot(hyperamp, hypertime, 'k', lw=lw)
-        ax.fill_betweenx(hypertime, hyperamp, x,
-                         where=hyperamp > x,
-                         facecolor=rgba,
-                         lw=0,
-                         )
-    return ax
-
-
 def decorate_seismic(ax, traces, trace_label_text, tickfmt, cfg):
     """
     Add various things to the seismic plot.
@@ -118,90 +86,6 @@ def watermark_seismic(ax, cfg):
 
     return ax
 
-
-def get_spectrum(signal, fs):
-    windowed = signal * np.blackman(len(signal))
-    a = abs(np.fft.rfft(windowed))
-    f = np.fft.rfftfreq(len(signal), 1/fs)
-
-    db = 20 * np.log10(a)
-    sig = db - np.amax(db) + 20
-    indices = ((sig[1:] >= 0) & (sig[:-1] < 0)).nonzero()
-    crossings = [z - sig[z] / (sig[z+1] - sig[z]) for z in indices]
-    mi, ma = np.amin(crossings), np.amax(crossings)
-    x = np.arange(0, len(f))  # for back-interpolation
-    f_min = np.interp(mi, x, f)
-    f_max = np.interp(ma, x, f)
-
-    return f, a, f_min, f_max
-
-
-def plot_spectrum(spec_ax, data, dt, tickfmt, ntraces=10, fontsize=10):
-    """
-    Plot a power spectrum.
-    w is window length for smoothing filter
-    """
-
-    trace_indices = utils.get_trace_indices(data.shape[1],
-                                            ntraces,
-                                            random=True)
-    fs = 1/(dt/10**6)
-
-    specs, peaks, mis, mas = [], [], [], []
-    for ti in trace_indices:
-        trace = data[:, ti]
-        f, amp, fmi, fma = get_spectrum(trace, fs)
-
-        peak = f[np.argmax(amp)]
-
-        specs.append(amp)
-        peaks.append(peak)
-        mis.append(fmi)
-        mas.append(fma)
-
-    spec = np.mean(np.dstack(specs), axis=-1)
-    spec = np.squeeze(spec)
-    db = 20 * np.log10(amp)
-    db = db - np.amax(db)
-    f_peak = np.mean(peaks)
-    f_min = np.amin(mis)
-    f_max = np.amax(mas)
-
-    statstring = "\nMin: {:.2f} Hz\nPeak: {:.2f} Hz\nMax: {:.2f}"
-    stats = statstring.format(f_min, f_peak, f_max)
-
-    spec_ax.plot(f, db, lw=0)  # Plot invisible line to get the min
-    y_min = spec_ax.get_yticks()[0]
-    spec_ax.fill_between(f, y_min, db, lw=0, facecolor='k', alpha=0.5)
-    spec_ax.set_xlabel('frequency [Hz]', fontsize=fontsize - 4)
-    spec_ax.xaxis.set_label_coords(0.5, -0.12)
-    spec_ax.set_xlim([0, np.amax(f)])
-    spec_ax.set_xticklabels(spec_ax.get_xticks(), fontsize=fontsize - 4)
-    spec_ax.set_yticklabels(spec_ax.get_yticks(), fontsize=fontsize - 4)
-    spec_ax.set_ylabel('power [dB]', fontsize=fontsize - 4)
-    spec_ax.text(.98, .95, 'AMPLITUDE SPECTRUM'+stats,
-                 horizontalalignment='right',
-                 verticalalignment='top',
-                 transform=spec_ax.transAxes, fontsize=fontsize - 3)
-    spec_ax.yaxis.set_major_formatter(tickfmt)
-    spec_ax.xaxis.set_major_formatter(tickfmt)
-    spec_ax.grid('on')
-    return spec_ax
-
-
-def chunk(string, width=80):
-    """
-    Chunks a long string into lines `width` characters long, default 80 chars.
-    If the string is not a multiple of 80 chars, the end is padded with spaces.
-    """
-    lines = int(np.ceil(len(string) / width))
-    result = ''
-    for i in range(lines):
-        line = string[i*width:i*width+width]
-        result += line + (width-len(line))*' ' + '\n'
-    return result
-
-
 def plot_header(head_ax, s, fs, cfg):
     """
     Plot EBCDIC or ASCII header.
@@ -211,7 +95,7 @@ def plot_header(head_ax, s, fs, cfg):
     font.set_size(fs-1)
     head_ax.axis([0, 40, 41, 0])
     head_ax.text(1, 1,
-                 chunk(s),
+                 s,
                  ha='left', va='top',
                  fontproperties=font)
     head_ax.set_xticks([])
