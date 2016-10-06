@@ -4,7 +4,7 @@
 
 # 3D inline or xline, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
-direction: xline
+direction: inline
 number: 5
 
 # Side label side
@@ -44,7 +44,7 @@ lineweight: 0.2
 # Colormap for variable density
 # e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
-cmap: RdBu
+cmap: jet
 
 # Fontsize
 fontsize: 10

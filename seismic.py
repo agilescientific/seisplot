@@ -97,11 +97,6 @@ class Seismic(object):
 
         # Get a monotonic sequence from the headers. Will be CDPs for a 2D.
         threed = False
-        xlines = utils.get_pattern_from_stream(stream, patterns.monotonic)
-        if np.any(xlines):
-            nxlines = np.amax(xlines) - np.amin(xlines) + 1
-            params['nxlines'] = params.get('nxlines') or nxlines
-            params['xlines'] = params.get('xlines') or xlines
 
         # Get a sawtooth progression. Will only work for a 3D.
         xlines = utils.get_pattern_from_stream(stream, patterns.sawtooth)
@@ -110,6 +105,12 @@ class Seismic(object):
             nxlines = np.amax(xlines) - np.amin(xlines) + 1
             params['nxlines'] = params.get('nxlines') or nxlines
             params['xlines'] = params.get('xlines') or xlines
+        else:
+            xlines = utils.get_pattern_from_stream(stream, patterns.monotonic)
+            if np.any(xlines):
+                nxlines = np.amax(xlines) - np.amin(xlines) + 1
+                params['nxlines'] = params.get('nxlines') or nxlines
+                params['xlines'] = params.get('xlines') or xlines
 
         params['ninlines'] = 1
         if threed:
@@ -126,8 +127,10 @@ class Seismic(object):
             'elevation': 'receiver_group_elevation',
             'fold': 'number_of_horizontally_stacked_traces_yielding_this_trace',
             'water_depth': 'water_depth_at_group',
-
         }
+
+        for k, v in headers.items():
+            params[k] = [t.header.__dict__[v] for t in stream.traces]
 
         return cls(data, params=params)
 

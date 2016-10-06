@@ -1,25 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-Simple seismic plotter.
+Seismic plotter.
 
 :copyright: 2016 Agile Geoscience
 :license: Apache 2.0
 """
-# Import standard libraries.
 import argparse
 import os
 import time
 import glob
 
-# Import 3rd party.
 import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from PIL import Image
 
-# Import our stuff.
 from seismic import Seismic
 from notice import Notice
 import utils
@@ -32,10 +29,14 @@ def main(target, cfg):
     """
     t0 = time.time()
 
-    # Read the file and get the data.
+    #####################################################################
+    #
+    # READ SEGY
+    #
+    #####################################################################
     s = Seismic.from_segy(target)
     direction = 'inline' if (cfg['direction'].lower()[0] == 'i') else 'xline'
-    data = s.get_line(direction, cfg['number'])
+    data = s.get_line(l=cfg['number'], direction=direction)
 
     if s.ndim == 2:
         x_label_text = 'CDP number'
@@ -65,9 +66,7 @@ def main(target, cfg):
     #####################################################################
     Notice.hr_header("Plotting")
 
-    ##################################
-    # Plot size parameters
-    # Some constants
+    # Plot size parameters.
     fs = cfg['fontsize']
     wsl = 6  # Width of sidelabel, inches
     mih = 12  # Minimum plot height, inches
@@ -75,14 +74,14 @@ def main(target, cfg):
     m = 0.5  # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
-    mt, mr, mb, ml = m,  2 * m, m, 2 * m
+    mt, mr, mb, ml = m, 2 * m, m, 2 * m
     mm = m  # padded margin between seismic and label
 
     # Width is determined by seismic width, plus sidelabel, plus margins.
     seismic_width = s.ntraces / cfg['tpi']
     w = ml + seismic_width + mm + wsl + mr  # inches
 
-    # Height is given by ips, but with a minimum of mih inches
+    # Height is given by ips, but with a minimum of mih inches.
     seismic_height = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
     h_reqd = mb + seismic_height + mt  # inches
     h = max(mih, h_reqd)
@@ -105,7 +104,6 @@ def main(target, cfg):
     Notice.info("Width of plot   {} in".format(w))
     Notice.info("Height of plot  {} in".format(h))
 
-    ##################################
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
 
@@ -130,7 +128,7 @@ def main(target, cfg):
         title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
         title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
         if s.ndim == 3:
-            title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
+            title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), cfg['number']))
 
     # Plot text header.
     start = (h - 1.5*mt - fhh) / h
@@ -192,19 +190,19 @@ def main(target, cfg):
         ax.set_ylim(ax.get_ylim()[::-1])
 
     if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
-        Notice.fail("You need to specify the type of display: wiggle, vd, or both.")
+        Notice.fail("You must specify the type of display: wiggle, vd, both.")
         return
 
     # Seismic axis annotations.
     ax = plotter.decorate_seismic(ax,
-                                  s.trace_range(direction=direction),
+                                  (0,data.shape[0]),
+                                  #s.trace_range(direction=direction),
                                   tr_label_text,
                                   tickfmt,
                                   cfg)
 
     # Watermark.
     if cfg['watermark_text']:
-        Notice.info("Adding watermark")
         ax = plotter.watermark_seismic(ax, cfg)
 
     t2 = time.time()
@@ -217,32 +215,19 @@ def main(target, cfg):
     #####################################################################
     Notice.hr_header("Saving")
 
+    dname, fname, ext = utils.path_bits(target)
+    outfile = cfg['outfile'] or ''
+    if not os.path.splitext(outfile)[1]:
+        outfile = os.path.join(cfg['outfile'] or dname, fname + '.png')
+
+    fig.savefig(outfile)
+
+    t3 = time.time()
+    Notice.ok("Saved image file {} in {:.1f} s".format(outfile, t3-t2))
+
     if cfg['stain_paper'] or cfg['coffee_rings'] or cfg['distort'] or cfg['scribble']:
-        stupid = True
-    else:
-        stupid = False
-
-    s = "Saved image file {} in {:.1f} s"
-    if cfg['outfile']:
-
-        if os.path.isfile(cfg['outfile']):
-            outfile = cfg['outfile']
-        else:  # is directory
-            stem, ext = os.path.splitext(os.path.split(target)[1])
-            outfile = os.path.join(cfg['outfile'], stem + '.png')
-
-        stem, _ = os.path.splitext(outfile)  # Needed for stupidity.
-        fig.savefig(outfile, dpi=cfg['dpi'])
-        t3 = time.time()
-        Notice.ok(s.format(outfile, t3-t2))
-    else:  # Do the default: save a PNG in the same dir as the target.
-        stem, _ = os.path.splitext(target)
-        fig.savefig(stem)
-        t3 = time.time()
-        Notice.ok(s.format(stem+'.png', t3-t2))
-
-    if stupid:
-        fig.savefig(stem + ".stupid.png", dpi=cfg['dpi'])
+        fname = os.path.splitext(outfile)[0] + ".stupid.png"
+        fig.savefig(fname)
     else:
         return
 
@@ -253,17 +238,14 @@ def main(target, cfg):
     #####################################################################
     Notice.hr_header("Applying the stupidity")
 
-    stupid_image = Image.open(stem + ".stupid.png")
-    if cfg['stain_paper']:
-        utils.stain_paper(stupid_image)
+    stupid_image = Image.open(fname)
+    if cfg['stain_paper']: utils.stain_paper(stupid_image)
     utils.add_rings(stupid_image, cfg['coffee_rings'])
-    if cfg['scribble']:
-        utils.add_scribble(stupid_image)
-    stupid_image.save(stem + ".stupid.png")
+    if cfg['scribble']: utils.add_scribble(stupid_image)
+    stupid_image.save(fname)
 
-    s = "Saved stupid file {}.stupid.png in {:.1f} s"
     t4 = time.time()
-    Notice.ok(s.format(stem, t4-t3))
+    Notice.ok("Saved stupid file {} in {:.1f} s".format(fname, t4-t3))
 
     return
 
