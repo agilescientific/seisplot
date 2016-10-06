@@ -126,10 +126,11 @@ def main(target, cfg):
     par1.xaxis.set_major_formatter(tickfmt)
 
     # Plot title.
-    title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
-    title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
-    if s.ndim == 3:
-        title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
+    if cfg['filename']:
+        title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
+        title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
+        if s.ndim == 3:
+            title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), line_no))
 
     # Plot text header.
     start = (h - 1.5*mt - fhh) / h
@@ -231,7 +232,7 @@ def main(target, cfg):
             outfile = os.path.join(cfg['outfile'], stem + '.png')
 
         stem, _ = os.path.splitext(outfile)  # Needed for stupidity.
-        fig.savefig(outfile)
+        fig.savefig(outfile, dpi=cfg['dpi'])
         t3 = time.time()
         Notice.ok(s.format(outfile, t3-t2))
     else:  # Do the default: save a PNG in the same dir as the target.
@@ -241,7 +242,7 @@ def main(target, cfg):
         Notice.ok(s.format(stem+'.png', t3-t2))
 
     if stupid:
-        fig.savefig(stem + ".stupid.png")
+        fig.savefig(stem + ".stupid.png", dpi=cfg['dpi'])
     else:
         return
 

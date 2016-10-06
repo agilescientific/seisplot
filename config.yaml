@@ -10,6 +10,9 @@ number: 5
 # Side label side
 sidelabel: right
 
+# Plot filename title
+filename: True
+
 # Traces per inch   (less -> wider plot)
 tpi: 50
 
@@ -20,7 +23,7 @@ ips: 3
 skip: 2
 
 # Seismic data display parameters (wiggle, varden, both):
-display: both
+display: vd
 
 # Multiplication factor for amplitudes 
 gain: 2
@@ -47,16 +50,16 @@ cmap: RdBu
 fontsize: 10
 
 # Watermark
-watermark_text: © A Seismic Company
-watermark_size: 16
-watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
-watermark_style: normal   # normal, italic, oblique
-watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
-watermark_colour: black
-watermark_alpha: 0.5
-watermark_angle: 33  # degrees
-watermark_cols: 4  # in x direction
-watermark_rows: 8  # in x direction
+#watermark_text: © A Seismic Company
+#watermark_size: 16
+#watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
+#watermark_style: normal   # normal, italic, oblique
+#watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
+#watermark_colour: black
+#watermark_alpha: 0.5
+#watermark_angle: 33  # degrees
+#watermark_cols: 4  # in x direction
+#watermark_rows: 8  # in x direction
 
 # Stupid things
 stain_paper: no
