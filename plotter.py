@@ -128,6 +128,7 @@ def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10):
     """
     Plot a histogram of amplitude values.
     """
+    data = np.array(data)
     datamax = np.amax(data)
     datamin = np.amin(data)
     largest = max(datamax, abs(datamin))

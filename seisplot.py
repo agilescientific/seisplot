@@ -35,8 +35,19 @@ def main(target, cfg):
     #
     #####################################################################
     s = Seismic.from_segy(target)
-    direction = 'inline' if (cfg['direction'].lower()[0] == 'i') else 'xline'
-    data = s.get_line(l=cfg['number'], direction=direction)
+    if (s.ndim) == 2 or (cfg['direction'].lower()[0] == 'i'):
+        direction = ['inline']
+    elif cfg['direction'].lower()[0] == 'x':
+        direction = ['xline']
+    else:
+        direction = ['inline', 'xline']
+    #data = [s.get_data(l=cfg['number'], direction=d) for d in direction]
+    try:
+        l, xl = cfg['number']
+    except:
+        l, xl = cfg['number'], 0.5
+    ss = [Seismic.from_seismic(s, l=l, direction=d) for l, d in zip((l, xl), direction)]
+    data = [s.data for s in ss]
 
     if s.ndim == 2:
         x_label_text = 'CDP number'
@@ -44,7 +55,7 @@ def main(target, cfg):
         x_label_text = 'Crossline number' if direction=='inline' else 'Inline number'
     tr_label_text = 'Trace number'
 
-    clip_val = np.percentile(data, cfg['percentile'])
+    clip_val = np.percentile(s.data, cfg['percentile'])
 
     # Notify user of parameters
     Notice.info("n_traces   {}".format(s.ntraces))
@@ -52,8 +63,8 @@ def main(target, cfg):
     Notice.info("dt         {}".format(s.dt))
     Notice.info("t_start    {}".format(s.tstart))
     Notice.info("t_end      {}".format(s.tend))
-    Notice.info("max_val    {:.3f}".format(np.amax(data)))
-    Notice.info("min_val    {:.3f}".format(np.amin(data)))
+    Notice.info("max_val    {:.3f}".format(np.amax(s.data)))
+    Notice.info("min_val    {:.3f}".format(np.amin(s.data)))
     Notice.info("clip_val   {:.3f}".format(clip_val))
 
     t1 = time.time()
@@ -78,12 +89,14 @@ def main(target, cfg):
     mm = m  # padded margin between seismic and label
 
     # Width is determined by seismic width, plus sidelabel, plus margins.
-    seismic_width = s.ntraces / cfg['tpi']
+    ntr = max([s.ntraces for s in ss])
+    seismic_width = ntr / cfg['tpi']
     w = ml + seismic_width + mm + wsl + mr  # inches
 
     # Height is given by ips, but with a minimum of mih inches.
-    seismic_height = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
-    h_reqd = mb + seismic_height + mt  # inches
+    seismic_height_raw = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
+    seismic_height = len(ss) * seismic_height_raw
+    h_reqd = mb + seismic_height + 0.75*(len(ss)-1) + mt  # inches
     h = max(mih, h_reqd)
 
     # Calculate where to start sidelabel and seismic data.
@@ -98,7 +111,7 @@ def main(target, cfg):
     adj = max(0, h - h_reqd) / 2
     seismic_bottom = (mb / h) + adj / h
     seismic_width_fraction = seismic_width / w
-    seismic_height_fraction = seismic_height / h
+    seismic_height_fraction = seismic_height_raw / h
 
     # Publish some notices so user knows plot size.
     Notice.info("Width of plot   {} in".format(w))
@@ -107,28 +120,13 @@ def main(target, cfg):
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
 
-    # Add the main seismic axis.
-    ax = fig.add_axes([seismic_left,
-                       seismic_bottom,
-                       seismic_width_fraction,
-                       seismic_height_fraction
-                       ])
-
-    # Make parasitic axes for labeling CDP number.
-    par1 = ax.twiny()
-    par1.spines["top"].set_position(("axes", 1.0))
+    # Set the tickformat.
     tickfmt = mtick.FormatStrFormatter('%.0f')
-    par1.plot(s.xlines, np.zeros_like(s.xlines))
-    par1.set_xlabel(x_label_text, fontsize=fs-2)
-    par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
-    par1.xaxis.set_major_formatter(tickfmt)
 
     # Plot title.
     if cfg['filename']:
-        title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/(h)])
+        title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
         title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
-        if s.ndim == 3:
-            title_ax.text(0.0, 0.0, '{} {}'.format(direction.title(), cfg['number']))
 
     # Plot text header.
     start = (h - 1.5*mt - fhh) / h
@@ -150,7 +148,7 @@ def main(target, cfg):
     # Plot histogram itself.
     hist_ax = fig.add_axes([chartx, histy, chartw, charth])
     hist_ax = plotter.plot_histogram(hist_ax,
-                                     data,
+                                     s.data,
                                      tickfmt,
                                      percentile=cfg['percentile'],
                                      fs=fs)
@@ -167,43 +165,56 @@ def main(target, cfg):
     except:
         pass
 
-    # Plot seismic data.
-    if cfg['display'].lower() in ['vd', 'varden', 'variable', 'both']:
-        _ = ax.imshow(data.T,
-                      cmap=cfg['cmap'],
-                      clim=[-clip_val, clip_val],
-                      extent=[0, s.ntraces, 1000*s.tbasis[-1], s.tbasis[0]],
-                      aspect='auto'
-                      )
+    for i, line in enumerate(ss):
+        # Add the seismic axis.
+        ax = fig.add_axes([seismic_left,
+                           seismic_bottom + i*seismic_height_fraction + i*pady,
+                           seismic_width_fraction,
+                           seismic_height_fraction
+                           ])
 
-    if cfg['display'].lower() in ['wiggle', 'both']:
-        ax = s.wiggle_plot(cfg['number'], direction,
-                           ax=ax,
-                           skip=cfg['skip'],
-                           gain=cfg['gain'],
-                           rgb=cfg['colour'],
-                           alpha=cfg['opacity'],
-                           lw=cfg['lineweight']
-                           )
+        # Plot seismic data.
+        if cfg['display'].lower() in ['vd', 'varden', 'variable', 'both']:
+            _ = ax.imshow(line.data.T,
+                          cmap=cfg['cmap'],
+                          clim=[-clip_val, clip_val],
+                          extent=[0, line.ntraces, 1000*line.tbasis[-1], line.tbasis[0]],
+                          aspect='auto'
+                          )
 
-    if cfg['display'].lower() == 'wiggle':
-        ax.set_ylim(ax.get_ylim()[::-1])
+        if cfg['display'].lower() in ['wiggle', 'both']:
+            ax = line.wiggle_plot(cfg['number'], direction,
+                               ax=ax,
+                               skip=cfg['skip'],
+                               gain=cfg['gain'],
+                               rgb=cfg['colour'],
+                               alpha=cfg['opacity'],
+                               lw=cfg['lineweight']
+                               )
 
-    if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
-        Notice.fail("You must specify the type of display: wiggle, vd, both.")
-        return
+        if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
+            Notice.fail("You must specify the type of display: wiggle, vd, both.")
+            return
 
-    # Seismic axis annotations.
-    ax = plotter.decorate_seismic(ax,
-                                  (0,data.shape[0]),
-                                  #s.trace_range(direction=direction),
-                                  tr_label_text,
-                                  tickfmt,
-                                  cfg)
+        # Seismic axis annotations.
+        ax = plotter.decorate_seismic(ax,
+                                      (0, line.data.shape[0]),
+                                      #s.trace_range(direction=direction),
+                                      tr_label_text,
+                                      tickfmt,
+                                      cfg)
 
-    # Watermark.
-    if cfg['watermark_text']:
-        ax = plotter.watermark_seismic(ax, cfg)
+        # Watermark.
+        if cfg['watermark_text']:
+            ax = plotter.watermark_seismic(ax, cfg)
+
+        # Make parasitic axes for labeling CDP number.
+        par1 = ax.twiny()
+        par1.spines["top"].set_position(("axes", 1.0))
+        par1.plot(s.xlines, np.zeros_like(s.xlines))
+        par1.set_xlabel(x_label_text, fontsize=fs-2)
+        par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
+        par1.xaxis.set_major_formatter(tickfmt)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))

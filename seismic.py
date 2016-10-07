@@ -23,6 +23,7 @@ class Seismic(object):
         if params is None:
             params = {}
         
+        self.params = params
         self.data = np.asarray(data, dtype=dtype)
         self.header = params.get('header', '')
         self.ntraces = params.get('ntraces', self.data.shape[0])
@@ -77,7 +78,7 @@ class Seismic(object):
 
     def trace_range(self, direction):
         if direction.lower()[0] == 'x':
-            self.inlines[0], self.inlines[-1]
+            return self.inlines[0], self.inlines[-1]
         return self.xlines[0], self.xlines[-1]
 
     @classmethod
@@ -138,6 +139,19 @@ class Seismic(object):
     def from_segy(cls, segy_file, params=None):
         stream = obspy.io.segy.segy._read_segy(segy_file, unpack_headers=True)
         return cls.from_obspy(stream, params=params)
+
+    @classmethod
+    def from_seismic(cls, seismic, l=0, direction='inline'):
+        if seismic.ndim == 2:
+            return seismic
+        if direction.lower()[0] == 'x':
+            if l < 1: l *= seismic.nxlines
+            data = seismic.data.copy()[..., int(l), :]
+        else:
+            if l < 1: l *= seismic.ninlines
+            data = seismic.data.copy()[int(l), ...]
+        params = seismic.params.copy()
+        return cls(data, params=params)
 
     def spectrum(self, signal, fs):
         windowed = signal * np.blackman(len(signal))
@@ -210,18 +224,18 @@ class Seismic(object):
         ax.grid('on')
         return ax
     
-    def get_line(self, l=1, direction=None):
+    def get_data(self, l=1, direction=None):
         if self.ndim < 3:
             return self.data
         if (direction is None) or (direction.lower()[0] == 'i'):
             if l < 1: l *= self.ninlines
-            return self.data[l, :, :]
+            return self.data[int(l), :, :]
         else:
             if l < 1: l *= self.nxlines
-            return self.data[:, l, :]
+            return self.data[:, int(l), :]
 
-    inline = partial(get_line, direction='i')
-    xline = partial(get_line, direction='x')
+    inline = partial(get_data, direction='i')
+    xline = partial(get_data, direction='x')
 
     def wiggle_plot(self, l=1, direction='i',
                     ax=None,
@@ -239,7 +253,7 @@ class Seismic(object):
             fig = plt.figure(figsize=(16,8))
             ax = fig.add_subplot(111)
 
-        data = self.get_line(l, direction)
+        data = self.get_data(l, direction)
         rgba = list(rgb) + [alpha]
         sc = np.percentile(data, perc)  # Normalization factor
         wigdata = data[::skip, :]
@@ -248,9 +262,9 @@ class Seismic(object):
         for x, trace in zip(xpos, wigdata):
             # Compute high resolution trace.
             amp = gain * trace / sc + x
-            t = self.tbasis
-            hypertime = 1000*np.linspace(t[0], t[-1], (10 * t.size - 1) + 1)
-            hyperamp = np.interp(hypertime, 1000*t, amp)
+            t = 1000 * self.tbasis
+            hypertime = np.linspace(t[0], t[-1], (10 * t.size - 1) + 1)
+            hyperamp = np.interp(hypertime, t, amp)
 
             # Plot the line, then the fill.
             ax.plot(hyperamp, hypertime, 'k', lw=lw)
@@ -259,6 +273,9 @@ class Seismic(object):
                              facecolor=rgba,
                              lw=0,
                              )
+
+        ax.set_ylim(t[-1], t[0])
+
         return ax
 
     def plot(self, slc=None):

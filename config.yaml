@@ -5,7 +5,7 @@
 # 3D inline or xline, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
 direction: inline
-number: 5
+number: 0.5
 
 # Side label side
 sidelabel: right
@@ -14,13 +14,13 @@ sidelabel: right
 filename: True
 
 # Traces per inch   (less -> wider plot)
-tpi: 50
+tpi: 100
 
 # Inches per second (more -> taller plot)
-ips: 3
+ips: 6
 
 # Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
-skip: 2
+skip: 10
 
 # Seismic data display parameters (wiggle, varden, both):
 display: vd
