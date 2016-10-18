@@ -34,30 +34,33 @@ def main(target, cfg):
     # READ SEGY
     #
     #####################################################################
-    s = Seismic.from_segy(target)
-    if (s.ndim) == 2 or (cfg['direction'].lower()[0] == 'i'):
+    s = Seismic.from_segy(target, params={'ndim': cfg['ndim']})
+
+    # Set the line and/or xline number.
+    try:
+        n, xl = cfg['number']
+    except:
+        n, xl = cfg['number'], 0.5
+
+    # Set the direction.
+    if (s.ndim) == 2:
+        direction = ['inline']
+    elif cfg['direction'].lower()[0] == 'i':
         direction = ['inline']
     elif cfg['direction'].lower()[0] == 'x':
         direction = ['xline']
+    elif cfg['direction'].lower()[0] == 't':
+        direction = ['tslice']
     else:
         direction = ['inline', 'xline']
-    #data = [s.get_data(l=cfg['number'], direction=d) for d in direction]
-    try:
-        l, xl = cfg['number']
-    except:
-        l, xl = cfg['number'], 0.5
-    ss = [Seismic.from_seismic(s, l=l, direction=d) for l, d in zip((l, xl), direction)]
-    data = [s.data for s in ss]
 
-    if s.ndim == 2:
-        x_label_text = 'CDP number'
-    else:
-        x_label_text = 'Crossline number' if direction=='inline' else 'Inline number'
-    tr_label_text = 'Trace number'
+    # Get the data.
+    ss = [Seismic.from_seismic(s, n=n, direction=d) for n, d in zip((n, xl), direction)]
+    data = [s.data for s in ss]
 
     clip_val = np.percentile(s.data, cfg['percentile'])
 
-    # Notify user of parameters
+    # Notify user of parameters.
     Notice.info("n_traces   {}".format(s.ntraces))
     Notice.info("n_samples  {}".format(s.nsamples))
     Notice.info("dt         {}".format(s.dt))
@@ -89,12 +92,17 @@ def main(target, cfg):
     mm = m  # padded margin between seismic and label
 
     # Width is determined by seismic width, plus sidelabel, plus margins.
-    ntr = max([s.ntraces for s in ss])
-    seismic_width = ntr / cfg['tpi']
-    w = ml + seismic_width + mm + wsl + mr  # inches
-
     # Height is given by ips, but with a minimum of mih inches.
-    seismic_height_raw = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
+    if 'tslice' in direction:
+        print('doing tslice')
+        seismic_width = max([s.ninlines for s in ss]) / cfg['tpi']
+        seismic_height_raw = max([s.nxlines for s in ss]) / cfg['tpi']
+        print(seismic_width, seismic_height_raw)
+    else:
+        seismic_width = max([s.ntraces for s in ss]) / cfg['tpi']
+        seismic_height_raw = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
+
+    w = ml + seismic_width + mm + wsl + mr  # inches
     seismic_height = len(ss) * seismic_height_raw
     h_reqd = mb + seismic_height + 0.75*(len(ss)-1) + mt  # inches
     h = max(mih, h_reqd)
@@ -178,9 +186,15 @@ def main(target, cfg):
             _ = ax.imshow(line.data.T,
                           cmap=cfg['cmap'],
                           clim=[-clip_val, clip_val],
-                          extent=[0, line.ntraces, 1000*line.tbasis[-1], line.tbasis[0]],
+                          extent=[0, 
+                                  line.ntraces,
+                                  1000*line.tbasis[-1],
+                                  line.tbasis[0]],
                           aspect='auto'
                           )
+
+            # This does not work: should cut off line at cfg['tmax']
+            # ax.set_ylim(1000*cfg['tmax'] or 1000*line.tbasis[-1], line.tbasis[0])
 
         if cfg['display'].lower() in ['wiggle', 'both']:
             ax = line.wiggle_plot(cfg['number'], direction,
@@ -189,7 +203,8 @@ def main(target, cfg):
                                gain=cfg['gain'],
                                rgb=cfg['colour'],
                                alpha=cfg['opacity'],
-                               lw=cfg['lineweight']
+                               lw=cfg['lineweight'],
+                               tmax=cfg['tmax'],
                                )
 
         if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
@@ -197,12 +212,15 @@ def main(target, cfg):
             return
 
         # Seismic axis annotations.
-        ax = plotter.decorate_seismic(ax,
-                                      (0, line.data.shape[0]),
-                                      #s.trace_range(direction=direction),
-                                      tr_label_text,
-                                      tickfmt,
-                                      cfg)
+        fs = cfg['fontsize'] - 2
+        ax.set_xlim([0, line.data.shape[0]])
+        ax.set_ylabel(line.ylabel, fontsize=fs)
+        ax.set_xlabel(line.xlabel, fontsize=fs, horizontalalignment='center')
+        ax.set_xticklabels(ax.get_xticks(), fontsize=fs)
+        ax.set_yticklabels(ax.get_yticks(), fontsize=fs)
+        ax.xaxis.set_major_formatter(tickfmt)
+        ax.yaxis.set_major_formatter(tickfmt)
+
 
         # Watermark.
         if cfg['watermark_text']:
@@ -212,8 +230,8 @@ def main(target, cfg):
         par1 = ax.twiny()
         par1.spines["top"].set_position(("axes", 1.0))
         par1.plot(s.xlines, np.zeros_like(s.xlines))
-        par1.set_xlabel(x_label_text, fontsize=fs-2)
-        par1.set_xticklabels(par1.get_xticks(), fontsize=fs-2)
+        par1.set_xlabel(line.xlabel, fontsize=fs)
+        par1.set_xticklabels(par1.get_xticks(), fontsize=fs)
         par1.xaxis.set_major_formatter(tickfmt)
 
     t2 = time.time()

@@ -16,6 +16,13 @@ import utils
 import patterns
 
 
+class SeismicError(Exception):
+    """
+    Generic error class.
+    """
+    pass
+
+
 class Seismic(object):
 
     def __init__(self, data, dtype=float, params=None):
@@ -29,6 +36,7 @@ class Seismic(object):
         self.ntraces = params.get('ntraces', self.data.shape[0])
         self.inlines = params.get('inlines', None)
         self.xlines = params.get('xlines', None)
+        self.dimensions = params.get('dimensions', ['i', 'x', 't'])
         self.ninlines = params.get('ninlines', 1)
         self.nxlines = params.get('nxlines', 0)
         self.nsamples = params.get('nsamples', self.data.shape[-1])
@@ -88,6 +96,10 @@ class Seismic(object):
             params = {}
         dt = params.get('dt', stream.binary_file_header.sample_interval_in_microseconds)
 
+        # ndim param can force 2d or 3d data
+        ndim = params.get('ndim', 0)
+        if ndim: params.pop('ndim')
+
         # Make certain it winds up in seconds. Most likely 0.0005 to 0.008.
         while dt > 0.02:
             dt *= 0.001
@@ -101,17 +113,19 @@ class Seismic(object):
 
         # Get a sawtooth progression. Will only work for a 3D.
         xlines = utils.get_pattern_from_stream(stream, patterns.sawtooth)
-        if np.any(xlines):
+        if np.any(xlines) and (ndim != 2):
             threed = True
             nxlines = np.amax(xlines) - np.amin(xlines) + 1
             params['nxlines'] = params.get('nxlines') or nxlines
             params['xlines'] = params.get('xlines') or xlines
+            params['dimensions'] = ['i', 'x', 't']
         else:
             xlines = utils.get_pattern_from_stream(stream, patterns.monotonic)
             if np.any(xlines):
                 nxlines = np.amax(xlines) - np.amin(xlines) + 1
                 params['nxlines'] = params.get('nxlines') or nxlines
                 params['xlines'] = params.get('xlines') or xlines
+            params['dimensions'] = ['i', 't']
 
         params['ninlines'] = 1
         if threed:
@@ -141,17 +155,33 @@ class Seismic(object):
         return cls.from_obspy(stream, params=params)
 
     @classmethod
-    def from_seismic(cls, seismic, l=0, direction='inline'):
+    def from_seismic(cls, seismic, n=0, direction='inline'):
+        params = seismic.params.copy()
         if seismic.ndim == 2:
             return seismic
-        if direction.lower()[0] == 'x':
-            if l < 1: l *= seismic.nxlines
-            data = seismic.data.copy()[..., int(l), :]
+        if direction.lower()[0] == 'i':
+            if n < 1: n *= seismic.ninlines
+            data = seismic.data.copy()[:, int(n), :]
+            params['dimensions'] = ['i', 't']
+        elif direction.lower()[0] == 'x':
+            if n < 1: n *= seismic.nxlines
+            data = seismic.data.copy()[:, int(n), :]
+            params['dimensions'] = ['x', 't']
+        elif direction.lower()[0] == 't':
+            if n < 1: n *= seismic.nsamples
+            data = seismic.data.copy()[..., int(n)]
+            params['dimensions'] = ['i', 'x']
         else:
-            if l < 1: l *= seismic.ninlines
-            data = seismic.data.copy()[int(l), ...]
-        params = seismic.params.copy()
+            raise SeismicError("No corresponding data.")
         return cls(data, params=params)
+
+    @property
+    def xlabel(self):
+        return self.dimensions[0]
+
+    @property
+    def ylabel(self):
+        return self.dimensions[-1]
 
     def spectrum(self, signal, fs):
         windowed = signal * np.blackman(len(signal))
@@ -178,14 +208,15 @@ class Seismic(object):
             fig = plt.figure(figsize=(12,6))
             ax = fig.add_subplot(111)
 
-        trace_indices = utils.get_trace_indices(self.data.shape[1],
+        trace_indices = utils.get_trace_indices(self.data.shape[0],
                                                 ntraces,
                                                 random=True)
         fs = 1 / self.dt
 
         specs, peaks, mis, mas = [], [], [], []
         for ti in trace_indices:
-            trace = self.data[:, ti]
+            trace = self.data[ti, :]
+            if sum(trace) == 0: continue
             f, amp, fmi, fma = self.spectrum(trace, fs)
 
             peak = f[np.argmax(amp)]
@@ -244,7 +275,9 @@ class Seismic(object):
                     gain=1.0,
                     rgb=(0, 0, 0),
                     alpha=0.5,
-                    lw=0.2):
+                    lw=0.2,
+                    tmax=0,
+                    ):
         """
         Plots wiggle traces of seismic data. Skip=1, every trace, skip=2, every
         second trace, etc.
@@ -274,7 +307,7 @@ class Seismic(object):
                              lw=0,
                              )
 
-        ax.set_ylim(t[-1], t[0])
+        ax.set_ylim(1000*tmax or t[-1], t[0])
 
         return ax
 
