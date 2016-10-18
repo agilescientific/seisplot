@@ -2,10 +2,13 @@
 # config.yaml
 # Configuration file for seisplot.py
 
+# Dimensions
+ndim: 2
+
 # 3D inline or xline, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
-direction: inline
-number: 0.5
+#direction: tslice
+#number: 0.5
 
 # Side label side
 sidelabel: right
@@ -14,13 +17,16 @@ sidelabel: right
 filename: True
 
 # Traces per inch   (less -> wider plot)
-tpi: 100
+tpi: 24
 
 # Inches per second (more -> taller plot)
-ips: 6
+ips: 3
+
+# Max time in seconds. 0 for max time in file.
+tmax: 2
 
 # Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
-skip: 10
+skip: 1
 
 # Seismic data display parameters (wiggle, varden, both):
 display: vd
@@ -44,7 +50,7 @@ lineweight: 0.2
 # Colormap for variable density
 # e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
-cmap: jet
+cmap: Greys
 
 # Fontsize
 fontsize: 10

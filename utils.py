@@ -16,12 +16,14 @@ from PIL import Image
 import numpy as np
 
 
-DEFAULTS = {'line': 'inline',
+DEFAULTS = {'ndim': 'auto',
+            'line': 'inline',
             'direction': 'inline',
             'number': 0.5,
             'sidelabel': 'right',
             'tpi': 10,
             'ips': 1,
+            'tmax': 0,
             'skip': 2,
             'display': 'vd',
             'filename': True,
