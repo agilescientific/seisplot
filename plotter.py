@@ -15,23 +15,6 @@ from matplotlib.colors import makeMappingArray
 import utils
 
 
-def decorate_seismic(ax, traces, trace_label_text, tickfmt, cfg):
-    """
-    Add various things to the seismic plot.
-    """
-    fs = cfg['fontsize']
-    min_tr, max_tr = traces
-    ax.set_xlim([min_tr, max_tr])
-    ax.set_ylabel('Two-way time [ms]', fontsize=fs - 2)
-    ax.set_xlabel(trace_label_text, fontsize=fs - 2, horizontalalignment='center')
-    ax.set_xticklabels(ax.get_xticks(), fontsize=fs - 2)
-    ax.set_yticklabels(ax.get_yticks(), fontsize=fs - 2)
-    ax.xaxis.set_major_formatter(tickfmt)
-    ax.yaxis.set_major_formatter(tickfmt)
-
-    return ax
-
-
 def watermark_seismic(ax, cfg):
     """
     Add semi-transparent text to the seismic.
