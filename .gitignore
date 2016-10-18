@@ -1,5 +1,6 @@
 data/*.pdf
 data/*.png
+Untitled.ipynb
 .ipynb_checkpoints
 
 # Byte-compiled / optimized / DLL files
