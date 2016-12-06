@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Seismic object for seisplot and beyond.
@@ -9,6 +8,7 @@ Seismic object for seisplot and beyond.
 from functools import partial
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import numpy as np
 import obspy
 
@@ -26,10 +26,10 @@ class SeismicError(Exception):
 class Seismic(object):
 
     def __init__(self, data, dtype=float, params=None):
-        
+
         if params is None:
             params = {}
-        
+
         self.params = params
         self.data = np.asarray(data, dtype=dtype)
         self.header = params.get('header', '')
@@ -55,7 +55,7 @@ class Seismic(object):
         if self.ninlines == 1:
             if self.nxlines > 0:
                 self.ninlines = int(self.data.shape[0] / self.nxlines)
-        
+
         if self.ninlines > 1:
             x = self.nxlines
             self.nxlines = int(self.data.shape[0] / self.ninlines)
@@ -71,11 +71,11 @@ class Seismic(object):
 
         self.tbasis = np.arange(0, self.nsamples * self.dt, self.dt)
         return
-    
+
     @property
     def shape(self):
         return self.data.shape
-    
+
     @property
     def ndim(self):
         return self.data.ndim
@@ -98,7 +98,8 @@ class Seismic(object):
 
         # ndim param can force 2d or 3d data
         ndim = params.get('ndim', 0)
-        if ndim: params.pop('ndim')
+        if ndim:
+            params.pop('ndim')
 
         # Make certain it winds up in seconds. Most likely 0.0005 to 0.008.
         while dt > 0.02:
@@ -160,15 +161,24 @@ class Seismic(object):
         if seismic.ndim == 2:
             return seismic
         if direction.lower()[0] == 'i':
-            if n < 1: n *= seismic.ninlines
-            data = seismic.data.copy()[:, int(n), :]
+            if n < 1:
+                n *= seismic.ninlines
+            data = seismic.data.copy()[int(n), ...]
             params['dimensions'] = ['i', 't']
+            nxnx = int(n * seismic.nxlines)
+            params['inlines'] = [seismic.inlines[int(nxnx + 1)]] * seismic.nxlines
+            params['xlines'] = seismic.xlines[nxnx:int((n+1)*seismic.nxlines)]
         elif direction.lower()[0] == 'x':
-            if n < 1: n *= seismic.nxlines
+            if n < 1:
+                n *= seismic.nxlines
             data = seismic.data.copy()[:, int(n), :]
             params['dimensions'] = ['x', 't']
+            nxnin = int(n*seismic.ninlines)
+            params['xlines'] = [seismic.xlines[int(nxnin + 1)]] * seismic.ninlines
+            params['inlines'] = seismic.inlines[nxnin:int((n+1)*seismic.ninlines)]
         elif direction.lower()[0] == 't':
-            if n < 1: n *= seismic.nsamples
+            if n < 1:
+                n *= seismic.nsamples
             data = seismic.data.copy()[..., int(n)]
             params['dimensions'] = ['i', 'x']
         else:
@@ -178,6 +188,10 @@ class Seismic(object):
     @property
     def xlabel(self):
         return self.dimensions[0]
+
+    @property
+    def olabel(self):
+        return 'x' if self.dimensions[0] == 'i' else 'i'
 
     @property
     def ylabel(self):
@@ -198,25 +212,35 @@ class Seismic(object):
         f_max = np.interp(ma, x, f)
 
         return f, a, f_min, f_max
-    
-    def plot_spectrum(self, ax=None, tickfmt=None, ntraces=10, fontsize=10):
+
+    def plot_spectrum(self, ax=None, tickfmt=None, ntraces=20, fontsize=10):
         """
         Plot a power spectrum.
         w is window length for smoothing filter
         """
+        if tickfmt is None:
+                # Set the tickformat.
+            tickfmt = mtick.FormatStrFormatter('%.0f')
+
         if ax is None:
-            fig = plt.figure(figsize=(12,6))
+            fig = plt.figure(figsize=(12, 6))
             ax = fig.add_subplot(111)
 
-        trace_indices = utils.get_trace_indices(self.data.shape[0],
+        trace_indices = utils.get_trace_indices(self.data.shape[:-1],
                                                 ntraces,
                                                 random=True)
         fs = 1 / self.dt
 
         specs, peaks, mis, mas = [], [], [], []
         for ti in trace_indices:
-            trace = self.data[ti, :]
-            if sum(trace) == 0: continue
+            if len(ti) == 1:
+                trace = self.data[ti, :]
+            else:
+                trace = self.data[ti[0], ti[1], :]
+
+            if sum(trace) == 0:
+                continue
+
             f, amp, fmi, fma = self.spectrum(trace, fs)
 
             peak = f[np.argmax(amp)]
@@ -226,7 +250,7 @@ class Seismic(object):
             mis.append(fmi)
             mas.append(fma)
 
-        spec = np.mean(np.dstack(specs), axis=-1)
+        spec = np.nanmean(np.dstack(specs), axis=-1)
         spec = np.squeeze(spec)
         db = 20 * np.log10(amp)
         db = db - np.amax(db)
@@ -247,22 +271,24 @@ class Seismic(object):
         ax.set_yticklabels(ax.get_yticks(), fontsize=fontsize - 4)
         ax.set_ylabel('power [dB]', fontsize=fontsize - 4)
         ax.text(.98, .95, 'AMPLITUDE SPECTRUM'+stats,
-                     horizontalalignment='right',
-                     verticalalignment='top',
-                     transform=ax.transAxes, fontsize=fontsize - 3)
+                horizontalalignment='right',
+                verticalalignment='top',
+                transform=ax.transAxes, fontsize=fontsize - 3)
         ax.yaxis.set_major_formatter(tickfmt)
         ax.xaxis.set_major_formatter(tickfmt)
         ax.grid('on')
         return ax
-    
+
     def get_data(self, l=1, direction=None):
         if self.ndim < 3:
             return self.data
         if (direction is None) or (direction.lower()[0] == 'i'):
-            if l < 1: l *= self.ninlines
+            if l < 1:
+                l *= self.ninlines
             return self.data[int(l), :, :]
         else:
-            if l < 1: l *= self.nxlines
+            if l < 1:
+                l *= self.nxlines
             return self.data[:, int(l), :]
 
     inline = partial(get_data, direction='i')
@@ -283,7 +309,7 @@ class Seismic(object):
         second trace, etc.
         """
         if ax is None:
-            fig = plt.figure(figsize=(16,8))
+            fig = plt.figure(figsize=(16, 8))
             ax = fig.add_subplot(111)
 
         data = self.get_data(l, direction)
@@ -307,6 +333,7 @@ class Seismic(object):
                              lw=0,
                              )
 
+        # This doesn't work but I don't know why.
         ax.set_ylim(1000*tmax or t[-1], t[0])
 
         return ax
@@ -316,11 +343,11 @@ class Seismic(object):
             slc = self.data.shape[0] // 2
         vm = np.percentile(self.data, 99)
         imparams = {'interpolation': 'none',
-                  'cmap': "gray",
-                  'vmin': -vm,
-                  'vmax': vm,
-                  'aspect': 'auto'
-                 }
+                    'cmap': "gray",
+                    'vmin': -vm,
+                    'vmax': vm,
+                    'aspect': 'auto'
+                    }
         if self.ndim == 1:
             plt.plot(self.data)
         elif self.ndim == 2:
@@ -331,3 +358,21 @@ class Seismic(object):
             plt.colorbar()
         plt.show()
         return
+
+
+class Seismic2D(Seismic):
+    def __init__(self, data, dtype=float, params=None):
+
+        # First generate the parent object.
+        super().__init__(data, dtype, params)
+
+        self.ndim = 2
+
+
+class Seismic3D(Seismic):
+    def __init__(self, data, dtype=float, params=None):
+
+        # First generate the parent object.
+        super().__init__(data, dtype, params)
+
+        self.ndim = 3

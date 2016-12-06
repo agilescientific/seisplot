@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Utility functions for seisplot.
@@ -8,13 +7,13 @@ Utility functions for seisplot.
 """
 # Standard
 import os
-import re
 
 # 3rd party
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
 
+LABELS = {'i': 'inline', 'x': 'xline', 't': 'time [ms]'}
 
 DEFAULTS = {'ndim': 'auto',
             'line': 'inline',
@@ -97,20 +96,25 @@ def get_trace_indices(y, ntraces, random=False):
     """
     Get a subset of trace positions.
     Args:
-        y (int): The total number of traces to choose from.
+        y (int): The total number of traces to choose from. 1D or 2D.
         ntraces (int): The number of traces to choose.
         random (bool): Whether to choose random traces, or
             to choose regularly-spaced.
     Yields:
-        str: Full path to each file in turn.
+        ndarray. 1D array of ints or tuples, with the coords of the
+            random traces.
     """
+    total = np.product(y)
     if random:
         x = 0.05 + 0.9*np.random.random(ntraces)  # avoids edges
-        ti = np.sort(x * y)
+        ti = np.sort(x * total)
     else:
         n = ntraces + 1
-        ti = np.arange(1./n, 1., 1./n) * y
-    return np.round(ti).astype(int)
+        ti = np.arange(1./n, 1., 1./n) * total
+    if len(y) > 1:
+        # Re-form the 2D indices.
+        ti = [(t%y[0], t//y[0]) for t in ti]
+    return np.floor(ti).astype(int)
 
 
 def max_opacity(image, maxi):

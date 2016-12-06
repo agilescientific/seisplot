@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Seismic plotter.
@@ -99,10 +99,10 @@ def main(target, cfg):
         seismic_height_raw = max([s.nxlines for s in ss]) / cfg['tpi']
         print(seismic_width, seismic_height_raw)
     else:
-        seismic_width = max([s.ntraces for s in ss]) / cfg['tpi']
+        seismic_width = [s.ntraces / cfg['tpi'] for s in ss]
         seismic_height_raw = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
 
-    w = ml + seismic_width + mm + wsl + mr  # inches
+    w = ml + max(seismic_width) + mm + wsl + mr  # inches
     seismic_height = len(ss) * seismic_height_raw
     h_reqd = mb + seismic_height + 0.75*(len(ss)-1) + mt  # inches
     h = max(mih, h_reqd)
@@ -110,7 +110,7 @@ def main(target, cfg):
     # Calculate where to start sidelabel and seismic data.
     # Depends on whether sidelabel is on the left or right.
     if cfg['sidelabel'] == 'right':
-        ssl = (ml + seismic_width + mm) / w  # Start of side label (ratio)
+        ssl = (ml + max(seismic_width) + mm) / w  # Start of side label (ratio)
         seismic_left = ml / w
     else:
         ssl = ml / w
@@ -118,7 +118,7 @@ def main(target, cfg):
 
     adj = max(0, h - h_reqd) / 2
     seismic_bottom = (mb / h) + adj / h
-    seismic_width_fraction = seismic_width / w
+    seismic_width_fraction = [sw / w for sw in seismic_width]
     seismic_height_fraction = seismic_height_raw / h
 
     # Publish some notices so user knows plot size.
@@ -177,7 +177,7 @@ def main(target, cfg):
         # Add the seismic axis.
         ax = fig.add_axes([seismic_left,
                            seismic_bottom + i*seismic_height_fraction + i*pady,
-                           seismic_width_fraction,
+                           seismic_width_fraction[i],
                            seismic_height_fraction
                            ])
 
@@ -186,7 +186,7 @@ def main(target, cfg):
             _ = ax.imshow(line.data.T,
                           cmap=cfg['cmap'],
                           clim=[-clip_val, clip_val],
-                          extent=[0, 
+                          extent=[0,
                                   line.ntraces,
                                   1000*line.tbasis[-1],
                                   line.tbasis[0]],
@@ -198,14 +198,14 @@ def main(target, cfg):
 
         if cfg['display'].lower() in ['wiggle', 'both']:
             ax = line.wiggle_plot(cfg['number'], direction,
-                               ax=ax,
-                               skip=cfg['skip'],
-                               gain=cfg['gain'],
-                               rgb=cfg['colour'],
-                               alpha=cfg['opacity'],
-                               lw=cfg['lineweight'],
-                               tmax=cfg['tmax'],
-                               )
+                                  ax=ax,
+                                  skip=cfg['skip'],
+                                  gain=cfg['gain'],
+                                  rgb=cfg['colour'],
+                                  alpha=cfg['opacity'],
+                                  lw=cfg['lineweight'],
+                                  tmax=cfg['tmax'],
+                                  )
 
         if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
             Notice.fail("You must specify the type of display: wiggle, vd, both.")
@@ -214,25 +214,29 @@ def main(target, cfg):
         # Seismic axis annotations.
         fs = cfg['fontsize'] - 2
         ax.set_xlim([0, line.data.shape[0]])
-        ax.set_ylabel(line.ylabel, fontsize=fs)
-        ax.set_xlabel(line.xlabel, fontsize=fs, horizontalalignment='center')
+        ax.set_ylabel(utils.LABELS[line.ylabel], fontsize=fs)
+        ax.set_xlabel(utils.LABELS[line.xlabel], fontsize=fs, horizontalalignment='center')
         ax.set_xticklabels(ax.get_xticks(), fontsize=fs)
         ax.set_yticklabels(ax.get_yticks(), fontsize=fs)
         ax.xaxis.set_major_formatter(tickfmt)
         ax.yaxis.set_major_formatter(tickfmt)
-
 
         # Watermark.
         if cfg['watermark_text']:
             ax = plotter.watermark_seismic(ax, cfg)
 
         # Make parasitic axes for labeling CDP number.
+
+        # NEED TO RELABEL TO MATCH ACTUAL LINE
+
+        ylim = ax.get_ylim()
         par1 = ax.twiny()
         par1.spines["top"].set_position(("axes", 1.0))
-        par1.plot(s.xlines, np.zeros_like(s.xlines))
-        par1.set_xlabel(line.xlabel, fontsize=fs)
+        par1.plot(line.xlines, np.zeros_like(line.xlines))
+        par1.set_xlabel(utils.LABELS[line.olabel], fontsize=fs)
         par1.set_xticklabels(par1.get_xticks(), fontsize=fs)
         par1.xaxis.set_major_formatter(tickfmt)
+        par1.set_ylim(ylim)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))

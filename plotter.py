@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Simple seismic plotting functions.
@@ -10,9 +9,6 @@ import numpy as np
 import matplotlib.font_manager as fm
 from matplotlib import cm
 from matplotlib.colors import makeMappingArray
-
-
-import utils
 
 
 def watermark_seismic(ax, cfg):

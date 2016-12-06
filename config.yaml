@@ -3,12 +3,12 @@
 # Configuration file for seisplot.py
 
 # Dimensions
-ndim: 2
+ndim: 3
 
-# 3D inline or xline, ignored for 2D data
+# 3D inline or xline or both, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
-#direction: tslice
-#number: 0.5
+direction: both
+number: 0.5
 
 # Side label side
 sidelabel: right
