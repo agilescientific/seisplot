@@ -2,8 +2,8 @@
 # config.yaml
 # Configuration file for seisplot.py
 
-# Dimensions
-ndim: 3
+# Dimensions. Overriden by command line option -d.
+ndim: 2
 
 # 3D inline or xline or both, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
@@ -25,7 +25,7 @@ subtitle: _date
 credit: true
 
 # Traces per inch   (less -> wider plot)
-tpi: 6
+tpi: 36
 
 # Inches per second (more -> taller plot)
 ips: 3

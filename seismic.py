@@ -262,10 +262,12 @@ class Seismic(object):
 
         specs, peaks, mis, mas = [], [], [], []
         for ti in trace_indices:
-            if len(ti) == 1:
-                trace = self.data[ti, :]
-            else:
+            try:
+                # 3D
                 trace = self.data[ti[0], ti[1], :]
+            except IndexError:
+                # 2D
+                trace = self.data[ti, :]
 
             if sum(trace) == 0:
                 continue

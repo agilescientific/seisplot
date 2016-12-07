@@ -248,17 +248,18 @@ def main(target, cfg):
 
         # NEED TO RELABEL TO MATCH ACTUAL LINE
 
-        ylim = ax.get_ylim()
-        par1 = ax.twiny()
-        par1.spines["top"].set_position(("axes", 1.0))
-        par1.plot(line.slines, np.zeros_like(line.slines), alpha=0)
-        par1.set_xlabel(utils.LABELS[line.slabel], fontsize=fs)
-        par1.set_ylim(ylim)
+        if cfg['ndim'] > 2:
+            ylim = ax.get_ylim()
+            par1 = ax.twiny()
+            par1.spines["top"].set_position(("axes", 1.0))
+            par1.plot(line.slines, np.zeros_like(line.slines), alpha=0)
+            par1.set_xlabel(utils.LABELS[line.slabel], fontsize=fs)
+            par1.set_ylim(ylim)
 
-        # Adjust ticks
-        tx = par1.get_xticks()
-        newtx = [line.slines[len(line.slines)*(i//len(tx))] for i, _ in enumerate(tx)]
-        par1.set_xticklabels(newtx, fontsize=fs)
+            # Adjust ticks
+            tx = par1.get_xticks()
+            newtx = [line.slines[len(line.slines)*(i//len(tx))] for i, _ in enumerate(tx)]
+            par1.set_xticklabels(newtx, fontsize=fs)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))
@@ -328,6 +329,12 @@ if __name__ == "__main__":
                         nargs='?',
                         default='',
                         help='The path to an output file. Default: same as input file, but with png file extension.')
+    parser.add_argument('-d',
+                        metavar='dimensions',
+                        type=int,
+                        nargs='?',
+                        default=0,
+                        help='The number of dimensions of the input seismic, usually 2 or 3. Overrides config file.')
     parser.add_argument('-R', '--recursive',
                         action='store_true',
                         help='Descend into subdirectories.')
@@ -335,12 +342,13 @@ if __name__ == "__main__":
     target = args.filename
     with args.config as f:
         cfg = yaml.load(f)
-    Notice.hr_header("Initializing")
+    Notice.hr_header("Initializing".format(args.d))
     Notice.info("config     {}".format(args.config.name))
 
     # Fill in 'missing' fields in cfg.
     cfg = {k: cfg.get(k, v) for k, v in utils.DEFAULTS.items()}
     cfg['outfile'] = args.out
+    cfg['ndim'] = args.d or cfg['ndim']
 
     # Go do it!
     for t in glob.glob(target):

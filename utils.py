@@ -15,7 +15,7 @@ import numpy as np
 
 LABELS = {'i': 'inline', 'x': 'xline', 't': 'time [ms]'}
 
-DEFAULTS = {'ndim': 'auto',
+DEFAULTS = {'ndim': 2,
             'line': 'inline',
             'direction': 'inline',
             'number': 0.5,
