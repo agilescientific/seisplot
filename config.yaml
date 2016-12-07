@@ -8,16 +8,24 @@ ndim: 3
 # 3D inline or xline or both, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
 direction: both
-number: 0.5
+number:
+  - 0.5
+  - 0.5
 
 # Side label side
-sidelabel: right
+sidelabel: left
 
-# Plot filename title
-filename: True
+# Plot title, use _filename for filename, use false for no title.
+title: My plot of _filename
+
+# Plot date
+subtitle: _date
+
+# Plot credit
+credit: true
 
 # Traces per inch   (less -> wider plot)
-tpi: 24
+tpi: 6
 
 # Inches per second (more -> taller plot)
 ips: 3
@@ -51,6 +59,12 @@ lineweight: 0.2
 # e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
 cmap: Greys
+
+# Fill colour for the spectrum, the histogram, and the title. RGB, 0-255.
+highlight_colour: 
+  - 0
+  - 20
+  - 80
 
 # Fontsize
 fontsize: 10

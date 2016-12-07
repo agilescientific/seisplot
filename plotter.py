@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.font_manager as fm
 from matplotlib import cm
 from matplotlib.colors import makeMappingArray
+import utils
 
 
 def watermark_seismic(ax, cfg):
@@ -65,6 +66,7 @@ def watermark_seismic(ax, cfg):
 
     return ax
 
+
 def plot_header(head_ax, s, fs, cfg):
     """
     Plot EBCDIC or ASCII header.
@@ -79,11 +81,12 @@ def plot_header(head_ax, s, fs, cfg):
                  fontproperties=font)
     head_ax.set_xticks([])
     head_ax.set_yticks([])
-    head_ax.text(40, 42,
-                 'plot by github.com/agile-geoscience/seisplot',
-                 size=fs, color='lightgray',
-                 ha=cfg['sidelabel'], va='top'
-                 )
+    if cfg['credit']:
+        head_ax.text(40, 42,
+                     'plot by github.com/agile-geoscience/seisplot',
+                     size=fs, color='lightgray',
+                     ha='right', va='top'
+                     )
     return head_ax
 
 
@@ -103,18 +106,20 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     return trhead_ax
 
 
-def plot_histogram(hist_ax, data, tickfmt, percentile=99.0, fs=10):
+def plot_histogram(hist_ax, data, tickfmt, cfg, fs=10):
     """
     Plot a histogram of amplitude values.
     """
+    percentile = cfg['percentile']
     data = np.array(data)
     datamax = np.amax(data)
     datamin = np.amin(data)
     largest = max(datamax, abs(datamin))
     clip_val = np.percentile(data, percentile)
     hist_ax.patch.set_alpha(0.0)
+    color = utils.rgb_to_hex(cfg['highlight_colour'])
     y, x, _ = hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
-                           alpha=1.0, color='#777777', lw=0)
+                           alpha=0.6, color=color, lw=0)
 
     hist_ax.set_xlim(-clip_val, clip_val)
     hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
@@ -188,12 +193,31 @@ def plot_colourbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zorder=
     return clr_ax
 
 
-def plot_title(title_ax, title, fs, cfg):
+def plot_title(ax, text, fs, cfg):
     """
     Add a title.
     """
-    title_ax.text(1.0, 0.0, title, size=fs,
-                  ha=cfg['sidelabel'],
-                  va='bottom')
-    title_ax.axis('off')
-    return title_ax
+    x = 1.0 if cfg['sidelabel'] == 'right' else 0.0
+    color = utils.rgb_to_hex(cfg['highlight_colour'])
+    ax.text(x, 0.0, text, size=fs,
+            ha=cfg['sidelabel'],
+            va='bottom',
+            color=color,
+            )
+    ax.axis('off')
+    return ax
+
+
+def plot_subtitle(ax, text, fs, cfg):
+    """
+    Add a title.
+    """
+    color = utils.rgb_to_hex(cfg['highlight_colour'])
+    x = 1.0 if cfg['sidelabel'] == 'right' else 0.0
+    ax.text(x, -0.15, text, size=fs,
+            ha=cfg['sidelabel'],
+            va='top',
+            color=color,
+            )
+    ax.axis('off')
+    return ax

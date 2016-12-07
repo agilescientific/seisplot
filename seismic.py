@@ -162,35 +162,59 @@ class Seismic(object):
             return seismic
         if direction.lower()[0] == 'i':
             if n < 1:
-                n *= seismic.ninlines
-            data = seismic.data.copy()[int(n), ...]
+                n *= seismic.nxlines
+                n = int(n)
+            data = seismic.data.copy()[n, ...]
             params['dimensions'] = ['i', 't']
-            nxnx = int(n * seismic.nxlines)
-            params['inlines'] = [seismic.inlines[int(nxnx + 1)]] * seismic.nxlines
-            params['xlines'] = seismic.xlines[nxnx:int((n+1)*seismic.nxlines)]
+            nx = int(n * seismic.nxlines)
+            params['inlines'] = [seismic.inlines[nx + 1]] * seismic.nxlines
+            params['xlines'] = seismic.xlines[nx:int((n+1)*seismic.nxlines)]
         elif direction.lower()[0] == 'x':
             if n < 1:
-                n *= seismic.nxlines
-            data = seismic.data.copy()[:, int(n), :]
+                n *= seismic.ninlines
+                n = int(n)
+            data = seismic.data.copy()[:, n, :]
             params['dimensions'] = ['x', 't']
-            nxnin = int(n*seismic.ninlines)
-            params['xlines'] = [seismic.xlines[int(nxnin + 1)]] * seismic.ninlines
-            params['inlines'] = seismic.inlines[nxnin:int((n+1)*seismic.ninlines)]
+            nx = int(n*seismic.ninlines)
+            params['xlines'] = [seismic.xlines[nx + 1]] * seismic.ninlines
+            params['inlines'] = [seismic.inlines[(r*seismic.nxlines)+n]
+                                 for r in range(seismic.ninlines)]
         elif direction.lower()[0] == 't':
             if n < 1:
                 n *= seismic.nsamples
-            data = seismic.data.copy()[..., int(n)]
+                n = int(n)
+            data = seismic.data.copy()[..., n]
             params['dimensions'] = ['i', 'x']
         else:
             raise SeismicError("No corresponding data.")
         return cls(data, params=params)
 
     @property
-    def xlabel(self):
+    def olines(self):
+        """
+        The other-line numbers.
+        """
+        return self.xlines if self.dimensions[0] == 'i' else self.inlines
+
+    @property
+    def slines(self):
+        """
+        The self-line numbers.
+        """
+        return self.inlines if self.dimensions[0] == 'i' else self.xlines
+
+    @property
+    def slabel(self):
+        """
+        The self-label (what am I?).
+        """
         return self.dimensions[0]
 
     @property
-    def olabel(self):
+    def xlabel(self):
+        """
+        What you'd label the x-axis. If this is an inline, it'd be xline.
+        """
         return 'x' if self.dimensions[0] == 'i' else 'i'
 
     @property
@@ -213,7 +237,12 @@ class Seismic(object):
 
         return f, a, f_min, f_max
 
-    def plot_spectrum(self, ax=None, tickfmt=None, ntraces=20, fontsize=10):
+    def plot_spectrum(self,
+                      ax=None,
+                      tickfmt=None,
+                      ntraces=20,
+                      fontsize=10,
+                      colour='k'):
         """
         Plot a power spectrum.
         w is window length for smoothing filter
@@ -263,7 +292,7 @@ class Seismic(object):
 
         ax.plot(f, db, lw=0)  # Plot invisible line to get the min
         y_min = ax.get_yticks()[0]
-        ax.fill_between(f, y_min, db, lw=0, facecolor='k', alpha=0.5)
+        ax.fill_between(f, y_min, db, lw=0, facecolor=colour, alpha=0.6)
         ax.set_xlabel('frequency [Hz]', fontsize=fontsize - 4)
         ax.xaxis.set_label_coords(0.5, -0.12)
         ax.set_xlim([0, np.amax(f)])

@@ -10,6 +10,8 @@ import argparse
 import os
 import time
 import glob
+import re
+import datetime
 
 import yaml
 import numpy as np
@@ -47,18 +49,26 @@ def main(target, cfg):
         direction = ['inline']
     elif cfg['direction'].lower()[0] == 'i':
         direction = ['inline']
-    elif cfg['direction'].lower()[0] == 'x':
+    elif cfg['direction'].lower()[0] in ['x', 'c']:  # Allow 'crossline' too.
         direction = ['xline']
     elif cfg['direction'].lower()[0] == 't':
         direction = ['tslice']
     else:
-        direction = ['inline', 'xline']
+        direction = ['xline', 'inline']
 
     # Get the data.
     ss = [Seismic.from_seismic(s, n=n, direction=d) for n, d in zip((n, xl), direction)]
-    data = [s.data for s in ss]
 
     clip_val = np.percentile(s.data, cfg['percentile'])
+
+    if clip_val < 10:
+        fstr = '{:.3f}'
+    elif clip_val < 100:
+        fstr = '{:.2f}'
+    elif clip_val < 1000:
+        fstr = '{:.1f}'
+    else:
+        fstr = '{:.0f}'
 
     # Notify user of parameters.
     Notice.info("n_traces   {}".format(s.ntraces))
@@ -66,9 +76,9 @@ def main(target, cfg):
     Notice.info("dt         {}".format(s.dt))
     Notice.info("t_start    {}".format(s.tstart))
     Notice.info("t_end      {}".format(s.tend))
-    Notice.info("max_val    {:.3f}".format(np.amax(s.data)))
-    Notice.info("min_val    {:.3f}".format(np.amin(s.data)))
-    Notice.info("clip_val   {:.3f}".format(clip_val))
+    Notice.info("max_val    " + fstr.format(np.amax(s.data)))
+    Notice.info("min_val    " + fstr.format(np.amin(s.data)))
+    Notice.info("clip_val   " + fstr.format(clip_val))
 
     t1 = time.time()
     Notice.ok("Read data in {:.1f} s".format(t1-t0))
@@ -89,7 +99,7 @@ def main(target, cfg):
 
     # Margins, CSS like: top, right, bottom, left.
     mt, mr, mb, ml = m, 2 * m, m, 2 * m
-    mm = m  # padded margin between seismic and label
+    mm = 2*m  # padded margin between seismic and label
 
     # Width is determined by seismic width, plus sidelabel, plus margins.
     # Height is given by ips, but with a minimum of mih inches.
@@ -122,8 +132,8 @@ def main(target, cfg):
     seismic_height_fraction = seismic_height_raw / h
 
     # Publish some notices so user knows plot size.
-    Notice.info("Width of plot   {} in".format(w))
-    Notice.info("Height of plot  {} in".format(h))
+    Notice.info("plot width   {:.2f} in".format(w))
+    Notice.info("plot height  {:.2f} in".format(h))
 
     # Make the figure.
     fig = plt.figure(figsize=(w, h), facecolor='w')
@@ -132,9 +142,17 @@ def main(target, cfg):
     tickfmt = mtick.FormatStrFormatter('%.0f')
 
     # Plot title.
-    if cfg['filename']:
+    if cfg['title']:
+        title = re.sub(r'_filename', target, cfg['title'])
         title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
-        title_ax = plotter.plot_title(title_ax, target, fs=1.5*fs, cfg=cfg)
+        title_ax = plotter.plot_title(title_ax, title, fs=1.4*fs, cfg=cfg)
+
+    # Plot title.
+    if cfg['subtitle']:
+        date = str(datetime.date.today())
+        subtitle = re.sub(r'_date', date, cfg['subtitle'])
+        subtitle_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
+        title_ax = plotter.plot_subtitle(subtitle_ax, subtitle, fs=0.75*fs, cfg=cfg)
 
     # Plot text header.
     start = (h - 1.5*mt - fhh) / h
@@ -158,7 +176,7 @@ def main(target, cfg):
     hist_ax = plotter.plot_histogram(hist_ax,
                                      s.data,
                                      tickfmt,
-                                     percentile=cfg['percentile'],
+                                     cfg,
                                      fs=fs)
 
     # Plot spectrum.
@@ -169,7 +187,9 @@ def main(target, cfg):
         spec_ax = s.plot_spectrum(ax=spec_ax,
                                   tickfmt=tickfmt,
                                   ntraces=20,
-                                  fontsize=fs)
+                                  fontsize=fs,
+                                  colour=utils.rgb_to_hex(cfg['highlight_colour']),
+                                  )
     except:
         pass
 
@@ -186,8 +206,8 @@ def main(target, cfg):
             _ = ax.imshow(line.data.T,
                           cmap=cfg['cmap'],
                           clim=[-clip_val, clip_val],
-                          extent=[0,
-                                  line.ntraces,
+                          extent=[line.olines[0],
+                                  line.olines[-1],
                                   1000*line.tbasis[-1],
                                   line.tbasis[0]],
                           aspect='auto'
@@ -213,7 +233,6 @@ def main(target, cfg):
 
         # Seismic axis annotations.
         fs = cfg['fontsize'] - 2
-        ax.set_xlim([0, line.data.shape[0]])
         ax.set_ylabel(utils.LABELS[line.ylabel], fontsize=fs)
         ax.set_xlabel(utils.LABELS[line.xlabel], fontsize=fs, horizontalalignment='center')
         ax.set_xticklabels(ax.get_xticks(), fontsize=fs)
@@ -232,11 +251,14 @@ def main(target, cfg):
         ylim = ax.get_ylim()
         par1 = ax.twiny()
         par1.spines["top"].set_position(("axes", 1.0))
-        par1.plot(line.xlines, np.zeros_like(line.xlines))
-        par1.set_xlabel(utils.LABELS[line.olabel], fontsize=fs)
-        par1.set_xticklabels(par1.get_xticks(), fontsize=fs)
-        par1.xaxis.set_major_formatter(tickfmt)
+        par1.plot(line.slines, np.zeros_like(line.slines), alpha=0)
+        par1.set_xlabel(utils.LABELS[line.slabel], fontsize=fs)
         par1.set_ylim(ylim)
+
+        # Adjust ticks
+        tx = par1.get_xticks()
+        newtx = [line.slines[len(line.slines)*(i//len(tx))] for i, _ in enumerate(tx)]
+        par1.set_xticklabels(newtx, fontsize=fs)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))
@@ -256,7 +278,8 @@ def main(target, cfg):
     fig.savefig(outfile)
 
     t3 = time.time()
-    Notice.ok("Saved image file {} in {:.1f} s".format(outfile, t3-t2))
+    Notice.info("output file {}".format(outfile))
+    Notice.ok("Saved output in {:.1f} s".format(t3-t2))
 
     if cfg['stain_paper'] or cfg['coffee_rings'] or cfg['distort'] or cfg['scribble']:
         fname = os.path.splitext(outfile)[0] + ".stupid.png"
@@ -278,7 +301,8 @@ def main(target, cfg):
     stupid_image.save(fname)
 
     t4 = time.time()
-    Notice.ok("Saved stupid file {} in {:.1f} s".format(fname, t4-t3))
+    Notice.info("output file {}".format(fname))
+    Notice.ok("Saved stupidity in {:.1f} s".format(t4-t3))
 
     return
 
@@ -312,7 +336,7 @@ if __name__ == "__main__":
     with args.config as f:
         cfg = yaml.load(f)
     Notice.hr_header("Initializing")
-    Notice.info("Config     {}".format(args.config.name))
+    Notice.info("config     {}".format(args.config.name))
 
     # Fill in 'missing' fields in cfg.
     cfg = {k: cfg.get(k, v) for k, v in utils.DEFAULTS.items()}
@@ -320,6 +344,7 @@ if __name__ == "__main__":
 
     # Go do it!
     for t in glob.glob(target):
-            Notice.hr_header("Processing file: {}".format(t))
-            main(t, cfg)
-            Notice.hr_header("Done")
+        Notice.hr_header("Processing file")
+        Notice.info("filename   {}".format(t))
+        main(t, cfg)
+        Notice.hr_header("Done")

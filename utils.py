@@ -25,13 +25,16 @@ DEFAULTS = {'ndim': 'auto',
             'tmax': 0,
             'skip': 2,
             'display': 'vd',
-            'filename': True,
+            'title': '_filename',
+            'subtitle': '_date',
+            'credit': True,
             'gain': 1.0,
             'percentile': 99.0,
             'colour': [0, 0, 0],
             'opacity': 1.0,
             'lineweight': 0.2,
             'cmap': 'Greys',
+            'highlight_colour': [0, 0, 0],
             'fontsize': 10,
             'watermark_text': '',  # None by default
             'watermark_size': 14,
@@ -60,8 +63,34 @@ HEADERS = [
     'original_field_record_number',
     'energy_source_point_number',
     'trace_number_within_the_original_field_record',
-#    'trace_identification_code',
+    # 'trace_identification_code',
 ]
+
+
+def rgb_to_hex(rgb):
+    """
+    Utility function to convert (r,g,b) triples to hex.
+    http://ageo.co/1CFxXpO
+    Args:
+      rgb (tuple): A sequence of RGB values in the
+        range 0-255 or 0-1.
+    Returns:
+      str: The hex code for the colour.
+    """
+    r, g, b = rgb[:3]
+    if (r < 0) or (g < 0) or (b < 0):
+            raise Exception("RGB values must all be 0-255 or 0-1")
+    if (r > 255) or (g > 255) or (b > 255):
+            raise Exception("RGB values must all be 0-255 or 0-1")
+    if (0 < r < 1) or (0 < g < 1) or (0 < b < 1):
+        if (r > 1) or (g > 1) or (b > 1):
+            raise Exception("RGB values must all be 0-255 or 0-1")
+    if (0 <= r <= 1) and (0 <= g <= 1) and (0 <= b <= 1):
+        rgb = tuple([int(round(val * 255)) for val in [r, g, b]])
+    else:
+        rgb = (int(r), int(g), int(b))
+    result = '#%02x%02x%02x' % rgb
+    return result.lower()
 
 
 def path_bits(path):
