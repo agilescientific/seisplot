@@ -91,26 +91,38 @@ def main(target, cfg):
     Notice.hr_header("Plotting")
 
     # Plot size parameters.
-    fs = cfg['fontsize']
-    wsl = 6  # Width of sidelabel, inches
-    mih = 12  # Minimum plot height, inches
-    fhh = 5  # File header box height, inches
-    m = 0.5  # basic unit of margins, inches
+    wsl = 6   # Width of sidelabel, inches
+    mih = 11  # Minimum plot height, inches
+    fhh = 5   # File header box height, inches
+    m = 0.5   # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
-    mt, mr, mb, ml = m, 2 * m, m, 2 * m
+    mt, mr, mb, ml = m, 1.5*m, m, 1.5*m
     mm = 2*m  # padded margin between seismic and label
+
+    # Determine plot dimensions. Kind of laborious and repetitive (see below).
+    if cfg['plot_width']:
+        seismic_width = cfg['plot_width'] - wsl - mm - ml - mr
+        tpi = max([s.ntraces for s in ss]) / seismic_width
+    else:
+        tpi = cfg['tpi']
+
+    if cfg['plot_height']:
+        seismic_height = max(mih, cfg['plot_height']) - mb - 0.75*(len(ss)-1) - mt
+        seismic_height_raw = seismic_height / len(ss)
+        ips = seismic_height_raw / (s.tbasis[-1] - s.tbasis[0])
+    else:
+        ips = cfg['ips']
 
     # Width is determined by seismic width, plus sidelabel, plus margins.
     # Height is given by ips, but with a minimum of mih inches.
     if 'tslice' in direction:
-        print('doing tslice')
-        seismic_width = max([s.ninlines for s in ss]) / cfg['tpi']
-        seismic_height_raw = max([s.nxlines for s in ss]) / cfg['tpi']
+        seismic_width = [s.ntraces / tpi for s in ss]
+        seismic_height_raw = max([s.nxlines for s in ss]) / tpi
         print(seismic_width, seismic_height_raw)
     else:
-        seismic_width = [s.ntraces / cfg['tpi'] for s in ss]
-        seismic_height_raw = cfg['ips'] * (s.tbasis[-1] - s.tbasis[0])
+        seismic_width = [s.ntraces / tpi for s in ss]
+        seismic_height_raw = ips * (s.tbasis[-1] - s.tbasis[0])
 
     w = ml + max(seismic_width) + mm + wsl + mr  # inches
     seismic_height = len(ss) * seismic_height_raw
@@ -141,23 +153,33 @@ def main(target, cfg):
     # Set the tickformat.
     tickfmt = mtick.FormatStrFormatter('%.0f')
 
+    # Could definitely do better for default fontsize than 10.
+    # Ideally would be adaptive to plot size.
+    cfg['fontsize'] = cfg['fontsize'] or 10
+
     # Plot title.
     if cfg['title']:
         title = re.sub(r'_filename', target, cfg['title'])
         title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
-        title_ax = plotter.plot_title(title_ax, title, fs=1.4*fs, cfg=cfg)
+        title_ax = plotter.plot_title(title_ax,
+                                      title,
+                                      fs=1.4*cfg['fontsize'],
+                                      cfg=cfg)
 
     # Plot title.
     if cfg['subtitle']:
         date = str(datetime.date.today())
         subtitle = re.sub(r'_date', date, cfg['subtitle'])
         subtitle_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
-        title_ax = plotter.plot_subtitle(subtitle_ax, subtitle, fs=0.75*fs, cfg=cfg)
+        title_ax = plotter.plot_subtitle(subtitle_ax,
+                                         subtitle,
+                                         fs=0.75*cfg['fontsize'],
+                                         cfg=cfg)
 
     # Plot text header.
     start = (h - 1.5*mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
-    head_ax = plotter.plot_header(head_ax, s.header, fs=fs-1, cfg=cfg)
+    head_ax = plotter.plot_header(head_ax, s.header, fs=9, cfg=cfg)
 
     # Plot histogram.
     # Params for histogram plot.
@@ -176,8 +198,7 @@ def main(target, cfg):
     hist_ax = plotter.plot_histogram(hist_ax,
                                      s.data,
                                      tickfmt,
-                                     cfg,
-                                     fs=fs)
+                                     cfg)
 
     # Plot spectrum.
     specy = 1.5 * mb/h
@@ -187,7 +208,7 @@ def main(target, cfg):
         spec_ax = s.plot_spectrum(ax=spec_ax,
                                   tickfmt=tickfmt,
                                   ntraces=20,
-                                  fontsize=fs,
+                                  fontsize=cfg['fontsize'],
                                   colour=utils.rgb_to_hex(cfg['highlight_colour']),
                                   )
     except:
@@ -202,16 +223,19 @@ def main(target, cfg):
                            ])
 
         # Plot seismic data.
+        cax = utils.add_subplot_axes(ax, [1.01, 0.02, 0.01, 0.2])
         if cfg['display'].lower() in ['vd', 'varden', 'variable', 'both']:
-            _ = ax.imshow(line.data.T,
-                          cmap=cfg['cmap'],
-                          clim=[-clip_val, clip_val],
-                          extent=[line.olines[0],
-                                  line.olines[-1],
-                                  1000*line.tbasis[-1],
-                                  line.tbasis[0]],
-                          aspect='auto'
-                          )
+            im = ax.imshow(line.data.T,
+                           cmap=cfg['cmap'],
+                           clim=[-clip_val, clip_val],
+                           extent=[line.olines[0],
+                                   line.olines[-1],
+                                   1000*line.tbasis[-1],
+                                   line.tbasis[0]],
+                           aspect='auto',
+                           interpolation=cfg['interpolation']
+                           )
+            _ = plt.colorbar(im, cax=cax)
 
             # This does not work: should cut off line at cfg['tmax']
             # ax.set_ylim(1000*cfg['tmax'] or 1000*line.tbasis[-1], line.tbasis[0])
@@ -232,34 +256,50 @@ def main(target, cfg):
             return
 
         # Seismic axis annotations.
-        fs = cfg['fontsize'] - 2
-        ax.set_ylabel(utils.LABELS[line.ylabel], fontsize=fs)
-        ax.set_xlabel(utils.LABELS[line.xlabel], fontsize=fs, horizontalalignment='center')
-        ax.set_xticklabels(ax.get_xticks(), fontsize=fs)
-        ax.set_yticklabels(ax.get_yticks(), fontsize=fs)
+        ax.set_ylabel(utils.LABELS[line.ylabel], fontsize=cfg['fontsize'])
+        ax.set_xlabel(utils.LABELS[line.xlabel], fontsize=cfg['fontsize'], horizontalalignment='center')
+        ax.set_xticklabels(ax.get_xticks(), fontsize=cfg['fontsize'] - 2)
+        ax.set_yticklabels(ax.get_yticks(), fontsize=cfg['fontsize'] - 2)
         ax.xaxis.set_major_formatter(tickfmt)
         ax.yaxis.set_major_formatter(tickfmt)
+
+        # Grid
+        if cfg['grid_time'] or cfg['grid_traces']:
+            ax.grid()
+            for l in ax.get_xgridlines():
+                l.set_color(utils.rgb_to_hex(cfg['grid_colour']))
+                l.set_linestyle('-')
+                if cfg['grid_traces']:
+                    l.set_linewidth(1)
+                else:
+                    l.set_linewidth(0)
+                l.set_alpha(min(1, cfg['grid_alpha']))
+            for l in ax.get_ygridlines():
+                l.set_color(utils.rgb_to_hex(cfg['grid_colour']))
+                l.set_linestyle('-')
+                if cfg['grid_time']:
+                    l.set_linewidth(1.4)
+                else:
+                    l.set_linewidth(0)
+                l.set_alpha(min(1, 2*cfg['grid_alpha']))
 
         # Watermark.
         if cfg['watermark_text']:
             ax = plotter.watermark_seismic(ax, cfg)
 
         # Make parasitic axes for labeling CDP number.
-
-        # NEED TO RELABEL TO MATCH ACTUAL LINE
-
-        if cfg['ndim'] > 2:
+        if (cfg['ndim'] > 2) and ('tslice' not in direction):
             ylim = ax.get_ylim()
             par1 = ax.twiny()
             par1.spines["top"].set_position(("axes", 1.0))
             par1.plot(line.slines, np.zeros_like(line.slines), alpha=0)
-            par1.set_xlabel(utils.LABELS[line.slabel], fontsize=fs)
+            par1.set_xlabel(utils.LABELS[line.slabel], fontsize=cfg['fontsize'])
             par1.set_ylim(ylim)
 
             # Adjust ticks
             tx = par1.get_xticks()
             newtx = [line.slines[len(line.slines)*(i//len(tx))] for i, _ in enumerate(tx)]
-            par1.set_xticklabels(newtx, fontsize=fs)
+            par1.set_xticklabels(newtx, fontsize=cfg['fontsize']-2)
 
     t2 = time.time()
     Notice.ok("Built plot in {:.1f} s".format(t2-t1))
@@ -322,6 +362,7 @@ if __name__ == "__main__":
                         metavar='SEGY file',
                         type=str,
                         nargs='?',
+                        default='./*.[s,S]*[g,G][y,Y]',
                         help='The path to one or more SEGY files. Uses Unix-style pathname expansion.')
     parser.add_argument('-o', '--out',
                         metavar='output file',
@@ -329,12 +370,15 @@ if __name__ == "__main__":
                         nargs='?',
                         default='',
                         help='The path to an output file. Default: same as input file, but with png file extension.')
-    parser.add_argument('-d',
+    parser.add_argument('-n', '--ndim',
                         metavar='dimensions',
                         type=int,
                         nargs='?',
                         default=0,
                         help='The number of dimensions of the input seismic, usually 2 or 3. Overrides config file.')
+    parser.add_argument('-d', '--demo',
+                        action='store_true',
+                        help='Run with the demo file, data/31_81_PR.png.')
     parser.add_argument('-R', '--recursive',
                         action='store_true',
                         help='Descend into subdirectories.')
@@ -342,13 +386,16 @@ if __name__ == "__main__":
     target = args.filename
     with args.config as f:
         cfg = yaml.load(f)
-    Notice.hr_header("Initializing".format(args.d))
+    Notice.hr_header("Initializing")
     Notice.info("config     {}".format(args.config.name))
 
     # Fill in 'missing' fields in cfg.
     cfg = {k: cfg.get(k, v) for k, v in utils.DEFAULTS.items()}
     cfg['outfile'] = args.out
-    cfg['ndim'] = args.d or cfg['ndim']
+    cfg['ndim'] = args.ndim or cfg['ndim']
+
+    if args.demo:
+        target = './data/31_81_PR.sgy'
 
     # Go do it!
     for t in glob.glob(target):

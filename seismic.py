@@ -289,7 +289,7 @@ class Seismic(object):
         f_min = np.amin(mis)
         f_max = np.amax(mas)
 
-        statstring = "\nMin: {:.2f} Hz\nPeak: {:.2f} Hz\nMax: {:.2f}"
+        statstring = "\nMin: {:.1f} Hz\nPeak: {:.1f} Hz\nMax: {:.1f} Hz"
         stats = statstring.format(f_min, f_peak, f_max)
 
         ax.plot(f, db, lw=0)  # Plot invisible line to get the min
@@ -301,13 +301,25 @@ class Seismic(object):
         ax.set_xticklabels(ax.get_xticks(), fontsize=fontsize - 4)
         ax.set_yticklabels(ax.get_yticks(), fontsize=fontsize - 4)
         ax.set_ylabel('power [dB]', fontsize=fontsize - 4)
-        ax.text(.98, .95, 'AMPLITUDE SPECTRUM'+stats,
+        ax.text(.98, .95, 'AMPLITUDE SPECTRUM',
+                horizontalalignment='right',
+                verticalalignment='top',
+                fontweight='bold',
+                color=colour,
+                transform=ax.transAxes, fontsize=fontsize - 3)
+        ax.text(.98, .95, stats,
                 horizontalalignment='right',
                 verticalalignment='top',
                 transform=ax.transAxes, fontsize=fontsize - 3)
         ax.yaxis.set_major_formatter(tickfmt)
         ax.xaxis.set_major_formatter(tickfmt)
+
         ax.grid('on')
+        gridlines = ax.get_xgridlines() + ax.get_ygridlines()
+        for line in gridlines:
+            line.set_linestyle('-')
+            line.set_alpha(0.2)
+
         return ax
 
     def get_data(self, l=1, direction=None):

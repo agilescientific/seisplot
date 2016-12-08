@@ -106,56 +106,72 @@ def plot_trace_info(trhead_ax, blurb, fs=10):
     return trhead_ax
 
 
-def plot_histogram(hist_ax, data, tickfmt, cfg, fs=10):
+def plot_histogram(ax, data, tickfmt, cfg):
     """
     Plot a histogram of amplitude values.
     """
+    fs = cfg['fontsize']
     percentile = cfg['percentile']
     data = np.array(data)
     datamax = np.amax(data)
     datamin = np.amin(data)
     largest = max(datamax, abs(datamin))
     clip_val = np.percentile(data, percentile)
-    hist_ax.patch.set_alpha(0.0)
+    ax.patch.set_alpha(0.0)
     color = utils.rgb_to_hex(cfg['highlight_colour'])
-    y, x, _ = hist_ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)), 
-                           alpha=0.6, color=color, lw=0)
 
-    hist_ax.set_xlim(-clip_val, clip_val)
-    hist_ax.set_xticklabels(hist_ax.get_xticks(), fontsize=fs - 4)
-    hist_ax.set_xlabel('amplitude', fontsize=fs - 4)
-    hist_ax.xaxis.set_label_coords(0.5, -0.12)
-    hist_ax.set_ylim([0, y.max()])
-    hist_ax.set_yticks(np.linspace(0, y.max(), 6))
-    hist_ax.set_ylabel('percentage of samples', fontsize=fs - 4)
-    hist_ax.tick_params(axis='x', pad=25)
-    hist_ax.xaxis.labelpad = 25
+    y, x, _ = ax.hist(np.ravel(data), bins=int(100.0 / (clip_val / largest)),
+                      alpha=0.6, color=color, lw=0)
 
-    ticks = hist_ax.get_yticks().tolist()  # ytick labels
+    ax.set_xlim(-clip_val, clip_val)
+    ax.set_xticklabels(ax.get_xticks(), fontsize=fs-4)
+    ax.set_xlabel('amplitude', fontsize=fs - 4)
+    ax.xaxis.set_label_coords(0.5, -0.12)
+    ax.set_ylim([0, y.max()])
+    ax.set_yticks(np.linspace(0, y.max(), 6))
+    ax.set_ylabel('percentage of samples', fontsize=fs-4)
+    ax.tick_params(axis='x', pad=25)
+    ax.xaxis.labelpad = 25
+
+    ticks = ax.get_yticks().tolist()  # ytick labels
     percentages = 100*np.array(ticks)/data.size
     labels = []
     for label in percentages:
         labels.append("{:.2f}".format(label))
-    hist_ax.set_yticklabels(labels, fontsize=fs - 4)
-    hist_ax.xaxis.set_major_formatter(tickfmt)
+    ax.set_yticklabels(labels, fontsize=fs - 4)
+    ax.xaxis.set_major_formatter(tickfmt)
     if datamax < 1:
         statstring = "\nMinimum: {:.4f}\nMaximum: {:.4f}".format(datamin, datamax)
+        statstring += "\n{:.1f} percentile: {:.4f}".format(percentile, clip_val)
     elif datamax < 10:
-        statstring = "\nMinimum: {:.2f}\nMaximum: {:.4f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.2f}\nMaximum: {:.2f}".format(datamin, datamax)
+        statstring += "\n{:.1f} percentile: {:.2f}".format(percentile, clip_val)
     elif datamax < 100:
-        statstring = "\nMinimum: {:.1f}\nMaximum: {:.4f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.1f}\nMaximum: {:.1f}".format(datamin, datamax)
+        statstring += "\n{:.1f} percentile: {:.1f}".format(percentile, clip_val)
     else:
-        statstring = "\nMinimum: {:.0f}\nMaximum: {:.4f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.0f}\nMaximum: {:.0f}".format(datamin, datamax)
+        statstring += "\n{:.1f} percentile: ±{:.0f}".format(percentile, clip_val)
 
-    statstring += "\nClip percentile: {:.1f}".format(percentile)
+    ax.text(.98, .95, 'AMPLITUDE HISTOGRAM',
+            horizontalalignment='right',
+            verticalalignment='top',
+            fontweight='bold',
+            color=utils.rgb_to_hex(cfg['highlight_colour']),
+            transform=ax.transAxes, fontsize=fs-3)
+    ax.text(.98, .95, statstring,
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform=ax.transAxes, fontsize=fs-3)
+    ax.set_alpha(0)
 
-    hist_ax.text(.98, .95, 'AMPLITUDE HISTOGRAM'+statstring,
-                 horizontalalignment='right',
-                 verticalalignment='top',
-                 transform=hist_ax.transAxes, fontsize=fs - 3)
-    hist_ax.set_alpha(0)
-    hist_ax.grid()
-    return hist_ax
+    ax.grid()
+    gridlines = ax.get_xgridlines() + ax.get_ygridlines()
+    for line in gridlines:
+        line.set_linestyle('-')
+        line.set_alpha(0.2)
+
+    return ax
 
 
 def plot_colourbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zorder=1):

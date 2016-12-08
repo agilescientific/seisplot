@@ -3,7 +3,7 @@
 # Configuration file for seisplot.py
 
 # Dimensions. Overriden by command line option -d.
-ndim: 2
+ndim: 3
 
 # 3D inline or xline or both, ignored for 2D data
 # Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
@@ -15,20 +15,26 @@ number:
 # Side label side
 sidelabel: left
 
-# Plot title, use _filename for filename, use false for no title.
+# Plot title, use _filename for filename, comment out or use false for no title.
 title: My plot of _filename
 
-# Plot date
-subtitle: _date
+# Plot subtitle, use _date for today's date, comment out or use false for no subtitle.
+subtitle: Made on _date
 
 # Plot credit
 credit: true
 
-# Traces per inch   (less -> wider plot)
-tpi: 36
+# Plot width... (treated as max, overrides traces per inch)
+plot_width: 17
 
-# Inches per second (more -> taller plot)
-ips: 3
+# ... OR traces per inch (less -> wider plot)
+# tpi: 36
+
+# Plot height... (treated as max, overrides inches per second)
+plot_height: 11
+
+# ...OR Inches per second (more -> taller plot)
+# ips: 3
 
 # Max time in seconds. 0 for max time in file.
 tmax: 2
@@ -55,10 +61,24 @@ opacity: 0.67
 # Wiggle plot lineweight
 lineweight: 0.2
 
+# Grid on the seismic panels.
+grid_traces: true
+grid_time: false
+grid_alpha: 0.15  # Twice this value used for timing lines, else hard to see.
+grid_colour:
+  - 0
+  - 0
+  - 0
+
 # Colormap for variable density
 # e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
 # See more at http://matplotlib.org/examples/color/colormaps_reference.html
 cmap: Greys
+
+# Interpolate variable density display. Acceptable values are ‘none’, ‘nearest’,
+# ‘bilinear’, ‘bicubic’, ‘spline16’, ‘spline36’, ‘hanning’, ‘hamming’, ‘hermite’,
+# ‘kaiser’, ‘quadric’, ‘catrom’, ‘gaussian’, ‘bessel’, ‘mitchell’, ‘sinc’, ‘lanczos’.
+interpolation: 'bicubic'
 
 # Fill colour for the spectrum, the histogram, and the title. RGB, 0-255.
 highlight_colour: 
@@ -66,8 +86,8 @@ highlight_colour:
   - 20
   - 80
 
-# Fontsize
-fontsize: 10
+# Fontsize, set to 0 for automatic
+fontsize: 0
 
 # Watermark
 #watermark_text: © A Seismic Company
