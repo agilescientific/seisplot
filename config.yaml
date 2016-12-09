@@ -29,16 +29,18 @@ credit: true
 plot_width: 17
 
 # ... OR traces per inch (less -> wider plot)
-# tpi: 36
+tpi: 36
 
 # Plot height... (treated as max, overrides inches per second)
 plot_height: 11
 
 # ...OR Inches per second (more -> taller plot)
-# ips: 3
+ips: 3
 
-# Max time in seconds. 0 for max time in file.
-tmax: 2
+# Min and max time in seconds. Set tmax: 0 or omit it for max time in file.
+trange:
+  - 1
+  - 2
 
 # Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
 skip: 1
@@ -96,8 +98,8 @@ watermark_size: 8
 watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
 watermark_style: normal   # normal, italic, oblique
 watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
-watermark_colour: black
-watermark_alpha: 0.4
+watermark_colour: white
+watermark_alpha: 0.6
 watermark_angle: 33  # degrees
 watermark_cols: 3  # in x direction
 watermark_rows: 6  # in x direction

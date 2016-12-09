@@ -97,7 +97,7 @@ def main(target, cfg):
     m = 0.5   # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
-    mt, mr, mb, ml = m, m, m, m
+    mt, mr, mb, ml = m, 1.5*m, m, 1.5*m
     mm = 2*m  # padded margin between seismic and label
 
     # Determine plot dimensions. Kind of laborious and repetitive (see below).
@@ -265,6 +265,8 @@ def main(target, cfg):
         ax.set_yticklabels(ax.get_yticks(), fontsize=cfg['fontsize'] - 2)
         ax.xaxis.set_major_formatter(tickfmt)
         ax.yaxis.set_major_formatter(tickfmt)
+        ax.set_ylim(1000*cfg['trange'][1] or 1000*line.tbasis[-1],
+                    1000*cfg['trange'][0])
 
         # Crossing point. Will only work for non-arb lines.
         ax.axvline(ss[i-1].slines[0],
@@ -393,9 +395,6 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--demo',
                         action='store_true',
                         help='Run with the demo file, data/31_81_PR.png.')
-    parser.add_argument('-R', '--recursive',
-                        action='store_true',
-                        help='Descend into subdirectories.')
     args = parser.parse_args()
     target = args.filename
     with args.config as f:
@@ -412,7 +411,7 @@ if __name__ == "__main__":
         target = './data/31_81_PR.sgy'
 
     # Go do it!
-    for t in glob.glob(target):
+    for t in glob.iglob(target, recursive=True):
         Notice.hr_header("Processing file")
         Notice.info("filename   {}".format(t))
         main(t, cfg)
