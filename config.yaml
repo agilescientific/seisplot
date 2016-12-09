@@ -3,6 +3,7 @@
 # Configuration file for seisplot.py
 
 # Dimensions. Overriden by command line option -d.
+# Usually you can leave it on 3, even for 2D. Change to 2 if a 2D doesn't load properly.
 ndim: 3
 
 # 3D inline or xline or both or tslice.
@@ -14,7 +15,7 @@ number:
   - 0.5
 
 # Side label side
-sidelabel: left
+sidelabel: right
 
 # Plot title, use _filename for filename, comment out or use false for no title.
 title: My plot of _filename
@@ -35,7 +36,7 @@ tpi: 36
 plot_height: 11
 
 # ...OR Inches per second (more -> taller plot)
-ips: 3
+ips: 2
 
 # Min and max time in seconds. Set tmax: 0 or omit it for max time in file.
 trange:
@@ -46,7 +47,7 @@ trange:
 skip: 1
 
 # Seismic data display parameters (wiggle, varden, both):
-display: vd
+display: wiggle
 
 # Multiplication factor for amplitudes 
 gain: 2

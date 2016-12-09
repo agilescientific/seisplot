@@ -247,7 +247,6 @@ def main(target, cfg):
                                   rgb=cfg['colour'],
                                   alpha=cfg['opacity'],
                                   lw=cfg['lineweight'],
-                                  tmax=cfg['tmax'],
                                   )
 
         valid = ['vd', 'varden', 'variable', 'wiggle', 'both']
@@ -265,8 +264,9 @@ def main(target, cfg):
         ax.set_yticklabels(ax.get_yticks(), fontsize=cfg['fontsize'] - 2)
         ax.xaxis.set_major_formatter(tickfmt)
         ax.yaxis.set_major_formatter(tickfmt)
-        ax.set_ylim(1000*cfg['trange'][1] or 1000*line.tbasis[-1],
-                    1000*cfg['trange'][0])
+        if ('tslice' not in direction):
+            ax.set_ylim(1000*cfg['trange'][1] or 1000*line.tbasis[-1],
+                        1000*cfg['trange'][0])
 
         # Crossing point. Will only work for non-arb lines.
         ax.axvline(ss[i-1].slines[0],
