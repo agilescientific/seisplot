@@ -12,6 +12,7 @@ import time
 import glob
 import re
 import datetime
+import sys
 
 import yaml
 import numpy as np
@@ -377,7 +378,6 @@ def main(target, cfg):
 
 if __name__ == "__main__":
 
-    Notice.title()
     parser = argparse.ArgumentParser(description='Plot a SEGY file.')
     parser.add_argument("-c", "--config",
                         metavar="config file",
@@ -406,7 +406,14 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--demo',
                         action='store_true',
                         help='Run with the demo file, data/31_81_PR.png.')
+    parser.add_argument('-v', '--version',
+                        action='store_true',
+                        help='Get the version number.')
     args = parser.parse_args()
+    if args.version:
+        Notice.info(__version__)
+        sys.exit()
+    Notice.title()
     target = args.filename
     with args.config as f:
         cfg = yaml.load(f)
