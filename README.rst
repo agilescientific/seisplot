@@ -92,4 +92,4 @@ New in this version
 Credits
 -------
 
-*Made with love and silliness by Evan and Matt at* `Agile <http://agilegeoscience.com>`_*
+*Made with love and silliness by Evan and Matt at* `Agile <http://agilegeoscience.com>`_
