@@ -1,3 +1,5 @@
+notebooks
+notebooks/*
 data/*.pdf
 data/*.png
 Untitled.ipynb
