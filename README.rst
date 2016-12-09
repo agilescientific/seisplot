@@ -7,7 +7,7 @@ A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/
     :target: #
     :alt: Project status
 
-.. image:: https://img.shields.io/github/release/agile-geoscience/seisplot.svg?style=flat-square
+.. image:: https://img.shields.io/badge/release-v0.3-green.svg?style=flat-square
     :target: #
     :alt: Release
 
@@ -44,6 +44,8 @@ Or, if you already have ``obspy``, update it::
 
 Quick start
 -------
+
+You can see what the thing does with::
 
     ./seisplot.py --demo
 
