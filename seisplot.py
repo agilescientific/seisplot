@@ -97,7 +97,7 @@ def main(target, cfg):
     m = 0.5   # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
-    mt, mr, mb, ml = m, 1.5*m, m, 1.5*m
+    mt, mr, mb, ml = m, 1.5*m, m, m
     mm = 2*m  # padded margin between seismic and label
 
     # Determine plot dimensions. Kind of laborious and repetitive (see below).
@@ -119,7 +119,6 @@ def main(target, cfg):
     if 'tslice' in direction:
         seismic_width = [s.ntraces / tpi for s in ss]
         seismic_height_raw = max([s.nxlines for s in ss]) / tpi
-        print(seismic_width, seismic_height_raw)
     else:
         seismic_width = [s.ntraces / tpi for s in ss]
         seismic_height_raw = ips * (s.tbasis[-1] - s.tbasis[0])
@@ -263,7 +262,13 @@ def main(target, cfg):
         ax.xaxis.set_major_formatter(tickfmt)
         ax.yaxis.set_major_formatter(tickfmt)
 
-        # Grid
+        # Crossing point. Will only work for non-arb lines.
+        ax.axvline(ss[i-1].slines[0],
+                   c=utils.rgb_to_hex(cfg['highlight_colour']),
+                   alpha=0.5
+                   )
+
+        # Grid, optional.
         if cfg['grid_time'] or cfg['grid_traces']:
             ax.grid()
             for l in ax.get_xgridlines():
@@ -278,7 +283,10 @@ def main(target, cfg):
                 l.set_color(utils.rgb_to_hex(cfg['grid_colour']))
                 l.set_linestyle('-')
                 if cfg['grid_time']:
-                    l.set_linewidth(1.4)
+                    if 'tslice' in direction:
+                        l.set_linewidth(1)
+                    else:
+                        l.set_linewidth(1.4)
                 else:
                     l.set_linewidth(0)
                 l.set_alpha(min(1, 2*cfg['grid_alpha']))
@@ -287,8 +295,8 @@ def main(target, cfg):
         if cfg['watermark_text']:
             ax = plotter.watermark_seismic(ax, cfg)
 
-        # Make parasitic axes for labeling CDP number.
-        if (cfg['ndim'] > 2) and ('tslice' not in direction):
+        # Make parasitic (top) axis for labeling CDP number.
+        if (s.data.ndim > 2) and ('tslice' not in direction):
             ylim = ax.get_ylim()
             par1 = ax.twiny()
             par1.spines["top"].set_position(("axes", 1.0))

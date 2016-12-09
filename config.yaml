@@ -5,8 +5,9 @@
 # Dimensions. Overriden by command line option -d.
 ndim: 3
 
-# 3D inline or xline or both, ignored for 2D data
-# Fractions, eg 0.3, are interpreted as fraction of volume in that direction.
+# 3D inline or xline or both or tslice.
+# Ignored for 2D data.
+# Proportions, eg 0.3, are interpreted as fraction of volume in that direction.
 direction: both
 number:
   - 0.5
@@ -63,7 +64,7 @@ lineweight: 0.2
 
 # Grid on the seismic panels.
 grid_traces: true
-grid_time: false
+grid_time: true
 grid_alpha: 0.15  # Twice this value used for timing lines, else hard to see.
 grid_colour:
   - 0
@@ -83,8 +84,8 @@ interpolation: 'bicubic'
 # Fill colour for the spectrum, the histogram, and the title. RGB, 0-255.
 highlight_colour: 
   - 0
-  - 20
-  - 80
+  - 30
+  - 100
 
 # Fontsize, set to 0 for automatic
 fontsize: 0
