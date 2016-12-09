@@ -23,6 +23,7 @@ from seismic import Seismic
 from notice import Notice
 import utils
 import plotter
+from _version import __version__
 
 
 def main(target, cfg):
@@ -57,7 +58,13 @@ def main(target, cfg):
         direction = ['xline', 'inline']
 
     # Get the data.
-    ss = [Seismic.from_seismic(s, n=n, direction=d) for n, d in zip((n, xl), direction)]
+    try:
+        ss = [Seismic.from_seismic(s, n=n, direction=d) for n, d in zip((n, xl), direction)]
+    except IndexError as e:
+        # Perhaps misinterpreted 2D as 3D
+        s = Seismic.from_segy(target, params={'ndim': 2})
+        direction = ['inline']
+        ss = [Seismic.from_seismic(s, n=n, direction=d) for n, d in zip((n, xl), direction)]
 
     clip_val = np.percentile(s.data, cfg['percentile'])
 
@@ -178,7 +185,11 @@ def main(target, cfg):
     # Plot text header.
     start = (h - 1.5*mt - fhh) / h
     head_ax = fig.add_axes([ssl, start, wsl/w, fhh/h])
-    head_ax = plotter.plot_header(head_ax, s.header, fs=9, cfg=cfg)
+    head_ax = plotter.plot_header(head_ax,
+                                  s.header,
+                                  fs=9,
+                                  cfg=cfg,
+                                  version=__version__)
 
     # Plot histogram.
     # Params for histogram plot.
@@ -227,8 +238,8 @@ def main(target, cfg):
             im = ax.imshow(line.data.T,
                            cmap=cfg['cmap'],
                            clim=[-clip_val, clip_val],
-                           extent=[line.olines[0],
-                                   line.olines[-1],
+                           extent=[line.olineidx[0],
+                                   line.olineidx[-1],
                                    1000*line.tbasis[-1],
                                    line.tbasis[0]],
                            aspect='auto',
@@ -269,7 +280,7 @@ def main(target, cfg):
                         1000*cfg['trange'][0])
 
         # Crossing point. Will only work for non-arb lines.
-        ax.axvline(ss[i-1].slines[0],
+        ax.axvline(ss[i-1].slineidx[0],
                    c=utils.rgb_to_hex(cfg['highlight_colour']),
                    alpha=0.5
                    )
@@ -306,13 +317,13 @@ def main(target, cfg):
             ylim = ax.get_ylim()
             par1 = ax.twiny()
             par1.spines["top"].set_position(("axes", 1.0))
-            par1.plot(line.slines, np.zeros_like(line.slines), alpha=0)
+            par1.plot(line.slineidx, np.zeros_like(line.slineidx), alpha=0)
             par1.set_xlabel(utils.LABELS[line.slabel], fontsize=cfg['fontsize'])
             par1.set_ylim(ylim)
 
             # Adjust ticks
             tx = par1.get_xticks()
-            newtx = [line.slines[len(line.slines)*(i//len(tx))] for i, _ in enumerate(tx)]
+            newtx = [line.slineidx[len(line.slineidx)*(i//len(tx))] for i, _ in enumerate(tx)]
             par1.set_xticklabels(newtx, fontsize=cfg['fontsize']-2)
 
     t2 = time.time()
@@ -379,7 +390,7 @@ if __name__ == "__main__":
                         type=str,
                         nargs='?',
                         default='./*.[s,S]*[g,G][y,Y]',
-                        help='The path to one or more SEGY files. Uses Unix-style pathname expansion.')
+                        help='The path to one or more SEGY files. Uses Unix-style pathname expansion. Omit to find all SEGY files in current directory.')
     parser.add_argument('-o', '--out',
                         metavar='output file',
                         type=str,

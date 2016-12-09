@@ -67,7 +67,7 @@ def watermark_seismic(ax, cfg):
     return ax
 
 
-def plot_header(head_ax, s, fs, cfg):
+def plot_header(head_ax, s, fs, cfg, version=''):
     """
     Plot EBCDIC or ASCII header.
     """
@@ -83,7 +83,7 @@ def plot_header(head_ax, s, fs, cfg):
     head_ax.set_yticks([])
     if cfg['credit']:
         head_ax.text(40, 42,
-                     'plot by github.com/agile-geoscience/seisplot',
+                     'plot by github.com/agile-geoscience/seisplot v{}'.format(version),
                      size=fs, color='lightgray',
                      ha='right', va='top'
                      )

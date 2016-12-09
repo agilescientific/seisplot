@@ -64,10 +64,17 @@ class Seismic(object):
                 print(s.format(self.nxlines))
             self.data = self.data.reshape((self.ninlines, self.nxlines, self.data.shape[-1]))
 
+        # Make sure there are no singleton dimensions.
+        self.data = np.squeeze(self.data)
+
         if self.inlines is None:
             self.inlines = np.linspace(1, self.ninlines, self.ninlines)
         if self.xlines is None:
             self.xlines = np.linspace(1, self.nxlines, self.nxlines)
+
+        # Guarantee we're getting a unique list.
+        self.inlines = np.unique(self.inlines)
+        self.xlines = np.unique(self.xlines)
 
         self.tbasis = np.arange(0, self.nsamples * self.dt, self.dt)
         return
@@ -161,26 +168,27 @@ class Seismic(object):
         if direction.lower()[0] == 'i':
             if n < 1:
                 n *= seismic.nxlines
-                n = int(n)
+                n = int(np.floor(n))
             data = seismic.data.copy()[n, ...]
             params['dimensions'] = ['i', 't']
-            nx = int(n * seismic.nxlines)
-            params['inlines'] = [seismic.inlines[nx + 1]] * seismic.nxlines
-            params['xlines'] = seismic.xlines[nx:int((n+1)*seismic.nxlines)]
+            params['inlines'] = seismic.inlines[n]
+            params['ninlines'] = 1
+            params['xlines'] = seismic.xlines
+            params['nxlines'] = len(seismic.xlines)
         elif direction.lower()[0] == 'x':
             if n < 1:
                 n *= seismic.ninlines
-                n = int(n)
+                n = int(np.floor(n))
             data = seismic.data.copy()[:, n, :]
             params['dimensions'] = ['x', 't']
-            nx = int(n*seismic.ninlines)
-            params['xlines'] = [seismic.xlines[nx + 1]] * seismic.ninlines
-            params['inlines'] = [seismic.inlines[(r*seismic.nxlines)+n]
-                                 for r in range(seismic.ninlines)]
+            params['inlines'] = seismic.inlines
+            params['ninlines'] = len(seismic.inlines)
+            params['xlines'] = seismic.xlines[n]
+            params['nxlines'] = 1
         elif direction.lower()[0] == 't':
             if n < 1:
                 n *= seismic.nsamples
-                n = int(n)
+                n = int(np.floor(n))
             data = seismic.data.copy()[..., n]
             params['dimensions'] = ['i', 'x']
         else:
@@ -188,18 +196,34 @@ class Seismic(object):
         return cls(data, params=params)
 
     @property
-    def olines(self):
+    def inlineidx(self):
+        """
+        The inline names of every trace.
+        """
+        m = np.meshgrid(np.unique(self.inlines), np.unique(self.xlines))
+        return m[0].T.flatten()
+
+    @property
+    def xlineidx(self):
+        """
+        The inline names of every trace.
+        """
+        m = np.meshgrid(np.unique(self.inlines), np.unique(self.xlines))
+        return m[1].T.flatten()
+
+    @property
+    def olineidx(self):
         """
         The other-line numbers.
         """
-        return self.xlines if self.dimensions[0] == 'i' else self.inlines
+        return self.xlineidx if self.dimensions[0] == 'i' else self.inlineidx
 
     @property
-    def slines(self):
+    def slineidx(self):
         """
         The self-line numbers.
         """
-        return self.inlines if self.dimensions[0] == 'i' else self.xlines
+        return self.inlineidx if self.dimensions[0] == 'i' else self.xlineidx
 
     @property
     def slabel(self):
@@ -286,9 +310,11 @@ class Seismic(object):
         f_peak = np.mean(peaks)
         f_min = np.amin(mis)
         f_max = np.amax(mas)
+        dt = 1000 // fs
+        f_nyquist = fs // 2
 
-        statstring = "\nMin: {:.1f} Hz\nPeak: {:.1f} Hz\nMax: {:.1f} Hz"
-        stats = statstring.format(f_min, f_peak, f_max)
+        statstring = "\nMin: {:.1f} Hz\nPeak: {:.1f} Hz\nMax: {:.1f} Hz\nNyquist ({} ms): {} Hz"
+        stats = statstring.format(f_min, f_peak, f_max, dt, f_nyquist)
 
         ax.plot(f, db, lw=0)  # Plot invisible line to get the min
         y_min = ax.get_yticks()[0]
