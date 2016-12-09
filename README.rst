@@ -3,25 +3,25 @@ seisplot
 
 A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/26/what-is-seg-y.html>`_. 
 
-.. image:: https://img.shields.io/badge/status-alpha-orange.svg
+.. image:: https://img.shields.io/badge/status-beta-yellow.svg?style=flat-square
     :target: #
     :alt: Project status
 
-.. image:: https://img.shields.io/github/release/agile-geoscience/seisplot.svg
+.. image:: https://img.shields.io/github/release/agile-geoscience/seisplot.svg?style=flat-square
     :target: #
     :alt: Release
 
-.. image:: https://img.shields.io/badge/python-3.4,_3.5-blue.svg
+.. image:: https://img.shields.io/badge/python-3.4,_3.5-blue.svg?style=flat-square
     :target: #
     :alt: Python version
 
-.. image:: https://img.shields.io/badge/license-Apache_2.0-blue.svg
+.. image:: https://img.shields.io/badge/license-Apache_2.0-blue.svg?style=flat-square
     :target: http://www.apache.org/licenses/LICENSE-2.0
     :alt: License
 
 
 Installation
-------------
+-------
 
 If you don't already have a reliable Python installation, and know how to wield it, I recommend downloading and installing `Anaconda <https://www.continuum.io/downloads>`_.
 
@@ -77,16 +77,17 @@ Example
 
 
 New in this version
--------------------
+-------
 
 - The ability to plot from 3D seismic, inlcuding a dual inline/crossline plot, and a timeslice.
 - An intersection line on dual inline/crossline displays for 3Ds.
 - You can specify min and max time for the plot(s).
 - Optional gridlines on the seismic plot.
+- A colourbar for variable density plots.
 - A highlight colour, applied to the histogram, spectrum, titles, and intersection lines.
 
 
 Credits
 -------
 
-*Made with love and silliness by Evan and Matt at* `Agile <http://agilegeoscience.com>`_
+*Made with love and silliness by Evan and Matt at* `Agile <http://agilegeoscience.com>`_*
