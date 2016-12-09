@@ -343,7 +343,6 @@ class Seismic(object):
                     rgb=(0, 0, 0),
                     alpha=0.5,
                     lw=0.2,
-                    tmax=0,
                     ):
         """
         Plots wiggle traces of seismic data. Skip=1, every trace, skip=2, every
@@ -373,9 +372,7 @@ class Seismic(object):
                              facecolor=rgba,
                              lw=0,
                              )
-
-        # This doesn't work but I don't know why.
-        ax.set_ylim(1000*tmax or t[-1], t[0])
+        ax.set_xlim(self.olines[0], self.olines[-1])
 
         return ax
 
