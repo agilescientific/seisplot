@@ -115,6 +115,7 @@ def plot_histogram(ax, data, tickfmt, cfg):
     data = np.array(data)
     datamax = np.amax(data)
     datamin = np.amin(data)
+    datamean = np.nanmean(data)
     largest = max(datamax, abs(datamin))
     clip_val = np.percentile(data, percentile)
     ax.patch.set_alpha(0.0)
@@ -141,16 +142,16 @@ def plot_histogram(ax, data, tickfmt, cfg):
     ax.set_yticklabels(labels, fontsize=fs - 4)
     ax.xaxis.set_major_formatter(tickfmt)
     if datamax < 1:
-        statstring = "\nMinimum: {:.4f}\nMaximum: {:.4f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.4f}\nMean:    {:.4f}\nMaximum: {:.4f}".format(datamin, datamean, datamax)
         statstring += "\n{:.1f} percentile: {:.4f}".format(percentile, clip_val)
     elif datamax < 10:
-        statstring = "\nMinimum: {:.2f}\nMaximum: {:.2f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.2f}\nMean:    {:.2f}\nMaximum: {:.2f}".format(datamin, datamean, datamax)
         statstring += "\n{:.1f} percentile: {:.2f}".format(percentile, clip_val)
     elif datamax < 100:
-        statstring = "\nMinimum: {:.1f}\nMaximum: {:.1f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.1f}\nMean:    {:.1f}\nMaximum: {:.1f}".format(datamin, datamean, datamax)
         statstring += "\n{:.1f} percentile: {:.1f}".format(percentile, clip_val)
     else:
-        statstring = "\nMinimum: {:.0f}\nMaximum: {:.0f}".format(datamin, datamax)
+        statstring = "\nMinimum: {:.0f}\nMean:    {:.0f}\nMaximum: {:.0f}".format(datamin, datamean, datamax)
         statstring += "\n{:.1f} percentile: ±{:.0f}".format(percentile, clip_val)
 
     ax.text(.98, .95, 'AMPLITUDE HISTOGRAM',
