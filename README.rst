@@ -32,9 +32,21 @@ Make and enter a virtual environment::
     conda create -n seisplot --file package-list.txt
     source activate seisplot
 
-Install one more dependency::
+Install one more dependency, `ObsPy <https://github.com/obspy/obspy>`_::
 
-    conda install -c obspy obspy
+    conda config --add channels conda-forge
+    conda install obspy
+
+Or, if you already have ``obspy``, update it::
+
+    conda update obspy
+
+
+Quick start
+-------
+
+    ./seisplot.py --demo
+
 
 Running
 -------
@@ -43,22 +55,36 @@ Edit ``config.yaml`` to meet your requirements.
 
 Run the script from the command line, for example::
 
-    python seisplot.py </path/to/infile.sgy>
+    ./seisplot.py </path/to/infile.sgy>
     
-This will use ``config.yaml`` make a PNG file in the same location, and with the same basic filename. To use a specific config file with another name or location, and to specify the output filetype — use PDF or SVG for fully scalable vector graphics instead of a raster — add the ``--out`` part::
+This will use the settings in ``config.yaml`` to make a PNG file in the same location, and with the same basic filename.
 
-    python seisplot.py </path/to/infile.segy> --config config.yaml --out /path/to/result.pdf
+The input filename can be any POSIX path specifier, so ``*.sgy`` will find all files with that extension. to recursively descend in to directories, use ``**`` like so: ``data/**/*.sgy``. To match multiple file extensions, try ``*.[s,S]*[g,G][y,Y]`` or ``{*.segy}{*.sgy}`` (exact results may depend on your platform).
 
-You can specify a directory and `seisplot` will find files like ``*.sgy``, ``*.SGY``, ``*.segy``, and ``*.SEGY`` in that directory. If you add the recursive flag, ``-R`` to the command line, ``seisplot`` will descend into subdirectories looking for SEG-Y files.
+To use a specific config file with another name or location add the ``--config`` option. To specify the output filetype — use PDF or SVG for fully scalable vector graphics instead of a raster — add the ``--out`` parameter::
+
+    ./seisplot.py </path/to/infile.segy> --config myconfig.yaml --out </path/to/result.pdf>
 
 With ``--out`` you can specify an output file and `seisplot` will honour the filetype if the ``matplotlib`` backend you are using supports it. If you specify a directory, all the outout files will go there, using the SEG-Y file's name as the main part of the filename (for example, `31-08.sgy` will give you ``31-08.png`` in the output directory.
 
 As in all things, stains are optional.
 
+
 Example
 -------
 
 .. image:: https://dl.dropboxusercontent.com/u/14965965/31_81_PR.stupid.png
+
+
+New in this version
+-------------------
+
+- The ability to plot from 3D seismic, inlcuding a dual inline/crossline plot, and a timeslice.
+- An intersection line on dual inline/crossline displays for 3Ds.
+- You can specify min and max time for the plot(s).
+- Optional gridlines on the seismic plot.
+- A highlight colour, applied to the histogram, spectrum, titles, and intersection lines.
+
 
 Credits
 -------
