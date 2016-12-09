@@ -10,7 +10,7 @@ import numpy as np
 
 def flat(arr):
     """
-    Finds (could be zeros)
+    Finds flat things (could be zeros)
         ___________________________
 
     """
@@ -24,7 +24,7 @@ def flat(arr):
 
 def zero(arr):
     """
-    Finds (flat and almost all zeros)
+    Finds flat things (flat and almost all zeros)
         ___________________________
 
     """
@@ -45,7 +45,7 @@ def monotonic(arr):
     if flat(arr):
         return False
     # Second derivative is zero
-    return zero(np.diff(np.diff(arr))) 
+    return zero(np.diff(np.diff(arr)))
 
 
 def count_spikes(arr):

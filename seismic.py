@@ -107,12 +107,10 @@ class Seismic(object):
 
         params['dt'] = dt
 
-        # Since we have the headers, etc, we can try to get some info.
-
-        # Get a monotonic sequence from the headers. Will be CDPs for a 2D.
+        # Since we have the headers, we can try to guess the geometry.
         threed = False
 
-        # Get a sawtooth progression. Will only work for a 3D.
+        # Get the sawtooth header field. In a perfect workd, only works for 3D.
         xlines = utils.get_pattern_from_stream(stream, patterns.sawtooth)
         if np.any(xlines) and (ndim != 2):
             threed = True

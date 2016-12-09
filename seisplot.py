@@ -97,7 +97,7 @@ def main(target, cfg):
     m = 0.5   # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
-    mt, mr, mb, ml = m, 1.5*m, m, m
+    mt, mr, mb, ml = m, m, m, m
     mm = 2*m  # padded margin between seismic and label
 
     # Determine plot dimensions. Kind of laborious and repetitive (see below).
@@ -204,14 +204,15 @@ def main(target, cfg):
     spec_ax = fig.add_axes([chartx, specy, chartw, charth])
 
     try:
+        colour = utils.rgb_to_hex(cfg['highlight_colour'])
         spec_ax = s.plot_spectrum(ax=spec_ax,
                                   tickfmt=tickfmt,
                                   ntraces=20,
                                   fontsize=cfg['fontsize'],
-                                  colour=utils.rgb_to_hex(cfg['highlight_colour']),
+                                  colour=colour,
                                   )
     except:
-        pass
+        pass  # No spectrum, oh well.
 
     for i, line in enumerate(ss):
         # Add the seismic axis.
@@ -222,7 +223,6 @@ def main(target, cfg):
                            ])
 
         # Plot seismic data.
-        cax = utils.add_subplot_axes(ax, [1.01, 0.02, 0.01, 0.2])
         if cfg['display'].lower() in ['vd', 'varden', 'variable', 'both']:
             im = ax.imshow(line.data.T,
                            cmap=cfg['cmap'],
@@ -234,10 +234,10 @@ def main(target, cfg):
                            aspect='auto',
                            interpolation=cfg['interpolation']
                            )
-            _ = plt.colorbar(im, cax=cax)
 
-            # This does not work: should cut off line at cfg['tmax']
-            # ax.set_ylim(1000*cfg['tmax'] or 1000*line.tbasis[-1], line.tbasis[0])
+            if np.argmin(seismic_width) == i:
+                cax = utils.add_subplot_axes(ax, [1.01, 0.02, 0.01, 0.2])
+                _ = plt.colorbar(im, cax=cax)
 
         if cfg['display'].lower() in ['wiggle', 'both']:
             ax = line.wiggle_plot(cfg['number'], direction,
@@ -250,13 +250,17 @@ def main(target, cfg):
                                   tmax=cfg['tmax'],
                                   )
 
-        if cfg['display'].lower() not in ['vd', 'varden', 'variable', 'wiggle', 'both']:
-            Notice.fail("You must specify the type of display: wiggle, vd, both.")
+        valid = ['vd', 'varden', 'variable', 'wiggle', 'both']
+        if cfg['display'].lower() not in valid:
+            Notice.fail("You must specify the display: wiggle, vd, both.")
             return
 
         # Seismic axis annotations.
-        ax.set_ylabel(utils.LABELS[line.ylabel], fontsize=cfg['fontsize'])
-        ax.set_xlabel(utils.LABELS[line.xlabel], fontsize=cfg['fontsize'], horizontalalignment='center')
+        ax.set_ylabel(utils.LABELS[line.ylabel],
+                      fontsize=cfg['fontsize'])
+        ax.set_xlabel(utils.LABELS[line.xlabel],
+                      fontsize=cfg['fontsize'],
+                      ha='center')
         ax.set_xticklabels(ax.get_xticks(), fontsize=cfg['fontsize'] - 2)
         ax.set_yticklabels(ax.get_yticks(), fontsize=cfg['fontsize'] - 2)
         ax.xaxis.set_major_formatter(tickfmt)
@@ -344,9 +348,11 @@ def main(target, cfg):
     Notice.hr_header("Applying the stupidity")
 
     stupid_image = Image.open(fname)
-    if cfg['stain_paper']: utils.stain_paper(stupid_image)
+    if cfg['stain_paper']:
+        utils.stain_paper(stupid_image)
     utils.add_rings(stupid_image, cfg['coffee_rings'])
-    if cfg['scribble']: utils.add_scribble(stupid_image)
+    if cfg['scribble']:
+        utils.add_scribble(stupid_image)
     stupid_image.save(fname)
 
     t4 = time.time()

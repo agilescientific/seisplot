@@ -5,13 +5,16 @@ Utility functions for seisplot.
 :copyright: 2016 Agile Geoscience
 :license: Apache 2.0
 """
-# Standard
 import os
+import errno
+import sys
 
-# 3rd party
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
+
+import utils
+
 
 LABELS = {'i': 'inline', 'x': 'xline', 't': 'time [ms]'}
 
@@ -192,7 +195,7 @@ def add_scribble(image):
     """
     Add a scribble.
     """
-    files = list(listdir('resources', 'scribble_[0-9]+.png'))
+    files = list(utils.listdir('resources', 'scribble_[0-9]+.png'))
     fname = np.random.choice(files)
     scribble = Image.open(fname)
 
@@ -297,7 +300,6 @@ def make_patch_spines_invisible(ax):
         sp.set_visible(False)
     return ax
 
-import errno, os
 
 # Sadly, Python fails to provide the following magic number for us.
 ERROR_INVALID_NAME = 123
@@ -309,6 +311,7 @@ See Also
 https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx
     Official listing of all such codes.
 '''
+
 
 def is_pathname_valid(pathname: str) -> bool:
     '''
@@ -382,6 +385,7 @@ def is_pathname_valid(pathname: str) -> bool:
     #
     # Did we mention this should be shipped with Python already?
 
+
 def is_path_creatable(pathname: str) -> bool:
     '''
     `True` if the current user has sufficient permissions to create the passed
@@ -391,6 +395,7 @@ def is_path_creatable(pathname: str) -> bool:
     # working directory (CWD) instead.
     dirname = os.path.dirname(pathname) or os.getcwd()
     return os.access(dirname, os.W_OK)
+
 
 def is_path_exists_or_creatable(pathname: str) -> bool:
     '''
@@ -406,6 +411,6 @@ def is_path_exists_or_creatable(pathname: str) -> bool:
             os.path.exists(pathname) or is_path_creatable(pathname))
     # Report failure on non-fatal filesystem complaints (e.g., connection
     # timeouts, permissions issues) implying this path to be inaccessible. All
-    # other exceptions are unrelated fatal issues and should not be caught here.
+    # other exceptions are unrelated fatal issues and should not be caught.
     except OSError:
         return False
