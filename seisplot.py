@@ -166,7 +166,10 @@ def main(target, cfg):
 
     # Plot title.
     if cfg['title']:
-        title = re.sub(r'_filename', target, cfg['title'])
+        # Deal with Windows paths: \1 gets interpreted as a group by regex.
+        newt = re.sub(r'\\', '@@@@@', target)
+        temp = re.sub(r'_filename', target, cfg['title'])
+        title = re.sub(r'@@@', r'\\', temp)
         title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
         title_ax = plotter.plot_title(title_ax,
                                       title,
@@ -429,7 +432,11 @@ if __name__ == "__main__":
         target = './data/31_81_PR.sgy'
 
     # Go do it!
-    for t in glob.iglob(target, recursive=True):
+    try:
+        globule = glob.iglob(target, recursive=True)  # Python 3.5+
+    except:
+        globule = glob.iglob(target)  # Python < 3.5
+    for t in globule:
         Notice.hr_header("Processing file")
         Notice.info("filename   {}".format(t))
         main(t, cfg)

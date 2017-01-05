@@ -157,7 +157,7 @@ class Seismic(object):
 
     @classmethod
     def from_segy(cls, segy_file, params=None):
-        stream = obspy.io.segy.segy._read_segy(segy_file, unpack_headers=True)
+        stream = obspy.io.segy.segy._read_segy(segy_file, unpack_headers=True, headonly=True)
         return cls.from_obspy(stream, params=params)
 
     @classmethod
