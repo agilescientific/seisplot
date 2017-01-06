@@ -60,8 +60,8 @@ class Seismic(object):
             x = self.nxlines
             self.nxlines = int(self.data.shape[0] / self.ninlines)
             if self.nxlines and x != self.nxlines:
-                s = "nxlines changed to {} to match data."
-                print(s.format(self.nxlines))
+                s = "data shape {} changed to {} to match data."
+                print(s.format(self.data.shape, (self.ninlines, self.nxlines, self.data.shape[-1])))
             self.data = self.data.reshape((self.ninlines, self.nxlines, self.data.shape[-1]))
 
         # Make sure there are no singleton dimensions.

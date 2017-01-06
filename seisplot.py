@@ -168,7 +168,7 @@ def main(target, cfg):
     if cfg['title']:
         # Deal with Windows paths: \1 gets interpreted as a group by regex.
         newt = re.sub(r'\\', '@@@@@', target)
-        temp = re.sub(r'_filename', target, cfg['title'])
+        temp = re.sub(r'_filename', newt, cfg['title'])
         title = re.sub(r'@@@', r'\\', temp)
         title_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
         title_ax = plotter.plot_title(title_ax,
