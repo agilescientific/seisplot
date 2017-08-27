@@ -426,20 +426,6 @@ class Seismic(object):
         plt.show()
         return
 
-    @staticmethod
-    def plot_2D_static(data):
-        vm = np.percentile(data, 99)
-        imparams = {'interpolation': 'none',
-                    'cmap': "gray",
-                    'vmin': -vm,
-                    'vmax': vm,
-                    'aspect': 'auto'
-                    }
-        plt.imshow(data.T, **imparams)
-        plt.colorbar()
-        plt.show()
-        return
-
 class Seismic2D(Seismic):
     def __init__(self, data, dtype=float, params=None):
 
