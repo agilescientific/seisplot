@@ -243,8 +243,11 @@ class Seismic(object):
     def ylabel(self):
         return self.dimensions[-1]
 
-    def spectrum(self, signal, fs):
-        windowed = signal * np.blackman(len(signal))
+    @staticmethod
+    def spectrum(signal, fs, taper = True):
+        windowed = signal
+        if taper:
+            windowed = windowed * np.blackman(len(windowed))
         a = abs(np.fft.rfft(windowed))
         f = np.fft.rfftfreq(len(signal), 1/fs)
 
@@ -305,7 +308,7 @@ class Seismic(object):
 
         spec = np.nanmean(np.dstack(specs), axis=-1)
         spec = np.squeeze(spec)
-        db = 20 * np.log10(amp)
+        db = 20 * np.log10(spec)
         db = db - np.amax(db)
         f_peak = np.mean(peaks)
         f_min = np.amin(mis)
@@ -377,6 +380,8 @@ class Seismic(object):
         if ax is None:
             fig = plt.figure(figsize=(16, 8))
             ax = fig.add_subplot(111)
+			
+        plt.gca().invert_yaxis()
 
         data = self.get_data(l, direction)
         rgba = list(rgb) + [alpha]
@@ -398,8 +403,6 @@ class Seismic(object):
                              facecolor=rgba,
                              lw=0,
                              )
-        ax.set_xlim(self.olines[0], self.olines[-1])
-
         return ax
 
     def plot(self, slc=None):
@@ -422,7 +425,6 @@ class Seismic(object):
             plt.colorbar()
         plt.show()
         return
-
 
 class Seismic2D(Seismic):
     def __init__(self, data, dtype=float, params=None):
