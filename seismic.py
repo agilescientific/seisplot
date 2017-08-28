@@ -244,10 +244,11 @@ class Seismic(object):
         return self.dimensions[-1]
 
     @staticmethod
-    def spectrum(signal, fs, taper = True):
-        windowed = signal
+    def spectrum(signal, fs, taper=True):
         if taper:
-            windowed = windowed * np.blackman(len(windowed))
+            windowed = signal * np.blackman(len(signal))
+        else:
+            windowed = signal
         a = abs(np.fft.rfft(windowed))
         f = np.fft.rfftfreq(len(signal), 1/fs)
 
@@ -380,8 +381,6 @@ class Seismic(object):
         if ax is None:
             fig = plt.figure(figsize=(16, 8))
             ax = fig.add_subplot(111)
-			
-        plt.gca().invert_yaxis()
 
         data = self.get_data(l, direction)
         rgba = list(rgb) + [alpha]
@@ -403,6 +402,7 @@ class Seismic(object):
                              facecolor=rgba,
                              lw=0,
                              )
+
         return ax
 
     def plot(self, slc=None):
@@ -425,6 +425,7 @@ class Seismic(object):
             plt.colorbar()
         plt.show()
         return
+
 
 class Seismic2D(Seismic):
     def __init__(self, data, dtype=float, params=None):
