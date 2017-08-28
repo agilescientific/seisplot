@@ -69,7 +69,6 @@ HEADERS = [
     'trace_sequence_number_within_line',  # nothing for 2d, zero-based sawtooth for 3d
     'trace_sequence_number_within_segy_file',  # zero-based monotonic for 2d and 3d
     'ensemble_number',  # trace-number-based monotonic for 2d
-    'trace_number_within_the_ensemble',
     'original_field_record_number',
     'energy_source_point_number',
     'trace_number_within_the_original_field_record',
