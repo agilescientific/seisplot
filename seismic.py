@@ -33,7 +33,7 @@ class Seismic(object):
         self.params = params
         self.data = np.asarray(data, dtype=dtype)
         self.header = params.get('header', '')
-        self.ntraces = params.get('ntraces', self.data.shape[0])
+        self.ntraces = params.get('ntraces', self.data.shape[-2])
         self.inlines = params.get('inlines', None)
         self.xlines = params.get('xlines', None)
         self.dimensions = params.get('dimensions', ['i', 'x', 't'])
@@ -41,7 +41,7 @@ class Seismic(object):
         self.nxlines = params.get('nxlines', 0)
         self.nsamples = params.get('nsamples', self.data.shape[-1])
         self.tstart = params.get('tstart', 0)
-        self.dt = params.get('dt', 0)
+        self.dt = params.get('dt', 0.001)
 
         if self.nsamples and self.nsamples != self.data.shape[-1]:
             t = self.nsamples
@@ -342,7 +342,7 @@ class Seismic(object):
         ax.yaxis.set_major_formatter(tickfmt)
         ax.xaxis.set_major_formatter(tickfmt)
 
-        ax.grid('on')
+        ax.grid()
         gridlines = ax.get_xgridlines() + ax.get_ygridlines()
         for line in gridlines:
             line.set_linestyle('-')
@@ -403,6 +403,7 @@ class Seismic(object):
                              lw=0,
                              )
 
+        ax.invert_yaxis()
         return ax
 
     def plot(self, slc=None):

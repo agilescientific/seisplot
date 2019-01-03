@@ -23,23 +23,14 @@ A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/
 Installation
 -------
 
-If you don't already have a reliable Python installation, and know how to wield it, I recommend downloading and installing `Anaconda <https://www.continuum.io/downloads>`_.
+If you don't already have a reliable Python installation, and know how to wield it, I recommend downloading and installing Anaconda.
 
 Get this repo with ``git`` or by downloading the ZIP file, and enter that directory.
 
 Make and enter a virtual environment::
 
-    conda create -n seisplot --file package-list.txt
-    source activate seisplot
-
-Install one more dependency, `ObsPy <https://github.com/obspy/obspy>`_::
-
-    conda config --add channels conda-forge
-    conda install obspy
-
-Or, if you already have ``obspy``, update it::
-
-    conda update obspy
+    conda env create -n seisplot -f environment.yml
+    conda activate seisplot
 
 
 Quick start
@@ -53,19 +44,19 @@ You can see what the thing does with::
 Running
 -------
 
-Edit ``config.yaml`` to meet your requirements.
+Edit ``config.yml`` to meet your requirements.
 
 Run the script from the command line, for example::
 
     ./seisplot.py </path/to/infile.sgy>
     
-This will use the settings in ``config.yaml`` to make a PNG file in the same location, and with the same basic filename.
+This will use the settings in ``config.yml`` to make a PNG file in the same location, and with the same basic filename.
 
 The input filename can be any POSIX path specifier, so ``*.sgy`` will find all files with that extension. to recursively descend in to directories, use ``**`` like so: ``data/**/*.sgy``. To match multiple file extensions, try ``*.[s,S]*[g,G][y,Y]`` or ``{*.segy}{*.sgy}`` (exact results may depend on your platform).
 
 To use a specific config file with another name or location add the ``--config`` option. To specify the output filetype — use PDF or SVG for fully scalable vector graphics instead of a raster — add the ``--out`` parameter::
 
-    ./seisplot.py </path/to/infile.segy> --config myconfig.yaml --out </path/to/result.pdf>
+    ./seisplot.py </path/to/infile.segy> --config myconfig.yml --out </path/to/result.pdf>
 
 With ``--out`` you can specify an output file and `seisplot` will honour the filetype if the ``matplotlib`` backend you are using supports it. If you specify a directory, all the outout files will go there, using the SEG-Y file's name as the main part of the filename (for example, `31-08.sgy` will give you ``31-08.png`` in the output directory.
 

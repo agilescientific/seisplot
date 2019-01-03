@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+# config.yml
+# Configuration file for seisplot.py
+
+# Dimensions. Overriden by command line option -d.
+# Usually you can leave it on 3, even for 2D. Change to 2 if a 2D doesn't load properly.
+ndim: 3
+
+# 3D inline or xline or both or tslice.
+# Ignored for 2D data.
+# Proportions, eg 0.3, are interpreted as fraction of volume in that direction.
+direction: both
+number:
+  - 0.5
+  - 0.5
+
+# Side label side
+sidelabel: right
+
+# Plot title, use _filename for filename, comment out or use false for no title.
+title: My plot of _filename
+
+# Plot subtitle, use _date for today's date, comment out or use false for no subtitle.
+subtitle: Made on _date
+
+# Plot credit
+credit: true
+
+# Plot width... (treated as max, overrides traces per inch)
+plot_width: 17
+
+# ... OR traces per inch (less -> wider plot)
+tpi: 36
+
+# Plot height... (treated as max, overrides inches per second)
+plot_height: 11
+
+# ...OR Inches per second (more -> taller plot)
+ips: 2
+
+# Min and max time in seconds.
+trange:
+  - 0  # Min 0 for top of data.
+  - 0  # Max 0 for bottom of data.
+
+# Wiggle skips (1 -> no skips, 2 -> every 2nd trace, etc.)
+skip: 3
+
+# Seismic data display parameters (wiggle, varden, both):
+display: wiggle
+
+# Multiplication factor for amplitudes 
+gain: 2
+
+# Percentile to clip amplitude at for display and for histogram. 
+percentile: 99.0
+
+# Wiggle fill: RGB, 0-255, opacity: 0-1
+colour: 
+  - 0
+  - 0
+  - 0
+opacity: 0.67
+
+# Wiggle plot lineweight
+lineweight: 0.2
+
+# Grid on the seismic panels.
+grid_traces: true
+grid_time: true
+grid_alpha: 0.15  # Twice this value used for timing lines, else hard to see.
+grid_colour:
+  - 0
+  - 0
+  - 0
+
+# Colormap for variable density
+# e.g. matplotlib colourbars: Greys (black to white), RdBu, RdGy, RdYlBu, seismic, etc.
+# See more at http://matplotlib.org/examples/color/colormaps_reference.html
+cmap: Greys
+
+# Interpolate variable density display. Acceptable values are ‘none’, ‘nearest’,
+# ‘bilinear’, ‘bicubic’, ‘spline16’, ‘spline36’, ‘hanning’, ‘hamming’, ‘hermite’,
+# ‘kaiser’, ‘quadric’, ‘catrom’, ‘gaussian’, ‘bessel’, ‘mitchell’, ‘sinc’, ‘lanczos’.
+interpolation: 'bicubic'
+
+# Fill colour for the spectrum, the histogram, and the title. RGB, 0-255.
+highlight_colour: 
+  - 0
+  - 30
+  - 100
+
+# Fontsize, set to 0 for automatic
+fontsize: 0
+
+# Watermark
+watermark_text: © A Seismic Company
+watermark_size: 8
+watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
+watermark_style: normal   # normal, italic, oblique
+watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
+watermark_colour: white
+watermark_alpha: 0.6
+watermark_angle: 33  # degrees
+watermark_cols: 3  # in x direction
+watermark_rows: 6  # in x direction
+
+# Stupid things
+stain_paper: no
+coffee_rings: 0
+scribble: no

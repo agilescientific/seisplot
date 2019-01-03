@@ -214,8 +214,8 @@ def plot_title(ax, text, fs, cfg):
     """
     Add a title.
     """
-    x = 1.0 if cfg['sidelabel'] == 'right' else 0.0
     color = utils.rgb_to_hex(cfg['highlight_colour'])
+    x = 1.0 if cfg['sidelabel'] == 'right' else 0.0
     ax.text(x, 0.0, text, size=fs,
             ha=cfg['sidelabel'],
             va='bottom',

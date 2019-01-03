@@ -180,7 +180,7 @@ def main(target, cfg):
     if cfg['subtitle']:
         date = str(datetime.date.today())
         subtitle = re.sub(r'_date', date, cfg['subtitle'])
-        subtitle_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h])
+        subtitle_ax = fig.add_axes([ssl, 1-mt/h, wsl/w, mt/h], label='subtitle')
         title_ax = plotter.plot_subtitle(subtitle_ax,
                                          subtitle,
                                          fs=0.75*cfg['fontsize'],
@@ -385,9 +385,9 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config",
                         metavar="config file",
                         type=argparse.FileType('r'),
-                        default="config.yaml",
+                        default="config.yml",
                         nargs="?",
-                        help="The name of a YAML config file. Default: config.yaml.")
+                        help="The name of a YAML config file. Default: config.yml.")
     parser.add_argument('filename',
                         metavar='SEGY file',
                         type=str,
