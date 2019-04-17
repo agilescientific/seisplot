@@ -32,7 +32,7 @@ Make and enter a virtual environment::
     conda env create -n seisplot -f environment.yml
     conda activate seisplot
 
-If you prefer to use ``obspy`` instead of ``segyio`` for SEG-Y reading, you can then do:
+If you prefer to use ``obspy`` instead of ``segyio`` for SEG-Y reading, you can then do::
 
     conda install -c conda-forge obspy
 
