@@ -11,7 +11,7 @@ A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/
     :target: #
     :alt: Release
 
-.. image:: https://img.shields.io/badge/python-3.4,_3.5-blue.svg?style=flat-square
+.. image:: https://img.shields.io/badge/python-3.6%2B-blue.svg?style=flat-square
     :target: #
     :alt: Python version
 
