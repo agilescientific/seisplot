@@ -95,20 +95,20 @@ fontsize: 0
 
 # Watermark
 watermark_text: © A Seismic Company
-watermark_size: 16
+watermark_size: 8
 watermark_family: serif   # sans-serif, serif, cursive, fantasy, monospace
 watermark_style: normal   # normal, italic, oblique
 watermark_weight: normal  # normal, light, medium, semibold, bold, heavy, black
-watermark_colour: red
+watermark_colour: white
 watermark_alpha: 0.6
 watermark_angle: 33  # degrees
 watermark_cols: 3  # in x direction
 watermark_rows: 6  # in x direction
 
 # Stupid things
-stain_paper: yes
-coffee_rings: 1
-scribble: yes
+stain_paper: no
+coffee_rings: 0
+scribble: no
 
 # SEG-Y reader library
 segy_library: segyio

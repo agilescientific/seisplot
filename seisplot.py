@@ -289,9 +289,9 @@ def main(target, cfg):
         # Crossing point. Will only work for non-arb lines.
         try:
             ax.axvline(ss[i-1].slineidx[0],
-                    c=utils.rgb_to_hex(cfg['highlight_colour']),
-                    alpha=0.5
-                    )
+                       c=utils.rgb_to_hex(cfg['highlight_colour']),
+                       alpha=0.5
+                       )
         except IndexError:
             print("Problem with slineidx")
 
