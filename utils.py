@@ -413,3 +413,9 @@ def is_path_exists_or_creatable(pathname: str) -> bool:
     # other exceptions are unrelated fatal issues and should not be caught.
     except OSError:
         return False
+
+
+def chunks(s, n):
+    """Produce `n`-character chunks from string `s`."""
+    for start in range(0, len(s), n):
+        yield s[start:start + n]

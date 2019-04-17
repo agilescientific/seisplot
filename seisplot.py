@@ -61,7 +61,7 @@ def main(target, cfg):
     # Get the data.
     try:
         ss = [Seismic.from_seismic(s, n=n, direction=d) for n, d in zip((n, xl), direction)]
-    except IndexError as e:
+    except IndexError:
         # Perhaps misinterpreted 2D as 3D
         s = Seismic.from_segy(target, params={'ndim': 2})
         direction = ['inline']
@@ -284,10 +284,13 @@ def main(target, cfg):
                         1000*cfg['trange'][0])
 
         # Crossing point. Will only work for non-arb lines.
-        ax.axvline(ss[i-1].slineidx[0],
-                   c=utils.rgb_to_hex(cfg['highlight_colour']),
-                   alpha=0.5
-                   )
+        try:
+            ax.axvline(ss[i-1].slineidx[0],
+                    c=utils.rgb_to_hex(cfg['highlight_colour']),
+                    alpha=0.5
+                    )
+        except IndexError:
+            print("Problem with slineidx")
 
         # Grid, optional.
         if cfg['grid_time'] or cfg['grid_traces']:
@@ -419,7 +422,7 @@ if __name__ == "__main__":
     Notice.title()
     target = args.filename
     with args.config as f:
-        cfg = yaml.load(f)
+        cfg = yaml.safe_load(f)
     Notice.hr_header("Initializing")
     Notice.info("config     {}".format(args.config.name))
 

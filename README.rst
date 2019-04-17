@@ -66,12 +66,13 @@ As in all things, stains are optional.
 Example
 -------
 
-.. image:: https://dl.dropboxusercontent.com/u/14965965/31_81_PR.stupid.png
+.. image:: https://www.dropbox.com/s/7au3nlm7vrbwvf6/31_81_PR.jpg?raw=1
 
 
-New in this version
+Recently added features
 -------
 
+- Uses `segyio` by default; `obspy` is still an option.
 - The ability to plot from 3D seismic, inlcuding a dual inline/crossline plot, and a timeslice.
 - An intersection line on dual inline/crossline displays for 3Ds.
 - You can specify min and max time for the plot(s).
@@ -83,4 +84,4 @@ New in this version
 Credits
 -------
 
-*Made with love and silliness by Evan and Matt at* `Agile <http://agilegeoscience.com>`_
+*Made with love and silliness by Evan and Matt at* `Agile <http://agilescientific.com>`_

@@ -10,7 +10,6 @@ from functools import partial
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-import obspy
 
 import utils
 import patterns
@@ -98,6 +97,11 @@ class Seismic(object):
 
     @classmethod
     def from_obspy(cls, stream, params=None):
+        try:
+            import obspy
+        except ModuleNotFoundError:
+            print("Install obspy with `conda install -c conda-forge obspy`.")
+
         data = np.stack(t.data for t in stream.traces)
         if params is None:
             params = {}
@@ -141,8 +145,8 @@ class Seismic(object):
                 params['ninlines'] = params.get('ninlines') or ninlines
                 params['inlines'] = params.get('inlines') or inlines
 
-        x = np.array(list(stream.textual_file_header.decode()))
-        params['header'] = '\n'.join(''.join(row) for row in x.reshape((40, 80)))
+        header = np.array(list(stream.textual_file_header.decode()))
+        params['header'] = '\n'.join(c for c in utils.chunks(header, 80))
 
         headers = {
             'elevation': 'receiver_group_elevation',
@@ -156,9 +160,49 @@ class Seismic(object):
         return cls(data, params=params)
 
     @classmethod
-    def from_segy(cls, segy_file, params=None):
+    def from_segy_with_obspy(cls, segy_file, params=None):
+        try:
+            import obspy
+        except ModuleNotFoundError:
+            print("Install obspy with `conda install -c conda-forge obspy`.")
+
         stream = obspy.io.segy.segy._read_segy(segy_file, unpack_headers=True, headonly=True)
         return cls.from_obspy(stream, params=params)
+
+    @classmethod
+    def from_segyio(cls, segy_file, params=None):
+        try:
+            import segyio
+        except ModuleNotFoundError:
+            print("Install segyio with `pip install segyio`.")
+
+        params = {}
+        with segyio.open(segy_file, strict=False) as s:
+            # Read the data.
+            data = np.stack([t.astype(np.float) for t in s.trace])
+
+            # Get the (x, y) locations.
+            x = [t[segyio.TraceField.GroupX] for t in s.header]
+            y = [t[segyio.TraceField.GroupY] for t in s.header]
+
+            # Get the trace numbers.
+            cdp = np.array([t[segyio.TraceField.CDP] for t in s.header])
+
+            # Get the first textual header.
+            header = s.text[0].decode('ascii')
+            params['header'] = '\n'.join(c for c in utils.chunks(header, 80))
+
+            # Get data from the binary header.
+            # Get the sample interval in ms (convert from microsec).
+            params['dt'] = s.bin[segyio.BinField.Interval] / 1000
+
+        return cls(data, dtype=float, params=params)
+
+    @classmethod
+    def from_segy_with_segyio(cls, segy_file, params=None):
+        return cls.from_segyio(segy_file, params=params)
+
+    from_segy = from_segy_with_segyio
 
     @classmethod
     def from_seismic(cls, seismic, n=0, direction='inline'):
