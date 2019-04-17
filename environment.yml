@@ -4,6 +4,7 @@ channels:
 dependencies:
 - matplotlib
 - numpy
-- obspy
 - pillow
 - pyyaml
+- pip:
+  - segyio

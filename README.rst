@@ -32,6 +32,10 @@ Make and enter a virtual environment::
     conda env create -n seisplot -f environment.yml
     conda activate seisplot
 
+If you prefer to use ``obspy`` instead of ``segyio`` for SEG-Y reading, you can then do:
+
+    conda install -c conda-forge obspy
+
 
 Quick start
 -------
@@ -72,7 +76,7 @@ Example
 Recently added features
 -------
 
-- Uses `segyio` by default; `obspy` is still an option.
+- Uses ``segyio`` by default; ``obspy`` is still an option.
 - The ability to plot from 3D seismic, inlcuding a dual inline/crossline plot, and a timeslice.
 - An intersection line on dual inline/crossline displays for 3Ds.
 - You can specify min and max time for the plot(s).
