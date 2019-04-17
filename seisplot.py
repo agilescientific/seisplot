@@ -38,7 +38,10 @@ def main(target, cfg):
     # READ SEGY
     #
     #####################################################################
-    s = Seismic.from_segy(target, params={'ndim': cfg['ndim']})
+    if cfg['segy_library'].lower() == 'obspy':
+        s = Seismic.from_segy_with_obspy(target, params={'ndim': cfg['ndim']})
+    else:
+        s = Seismic.from_segy(target, params={'ndim': cfg['ndim']})
 
     # Set the line and/or xline number.
     try:
@@ -102,7 +105,7 @@ def main(target, cfg):
     wsl = 6   # Width of sidelabel, inches
     mih = 11  # Minimum plot height, inches
     fhh = 5   # File header box height, inches
-    m = 0.5   # basic unit of margins, inches
+    m = 0.75   # basic unit of margins, inches
 
     # Margins, CSS like: top, right, bottom, left.
     mt, mr, mb, ml = m, 1.5*m, m, 1.5*m
@@ -373,7 +376,12 @@ def main(target, cfg):
     utils.add_rings(stupid_image, cfg['coffee_rings'])
     if cfg['scribble']:
         utils.add_scribble(stupid_image)
-    stupid_image.save(fname)
+
+    # Trick to remove remaining semi-transparent pixels.
+    result = Image.new("RGB", stupid_image.size, (255, 255, 255))
+    result.paste(stupid_image)
+
+    result.save(fname)
 
     t4 = time.time()
     Notice.info("output file {}".format(fname))

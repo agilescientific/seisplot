@@ -8,6 +8,7 @@ Utility functions for seisplot.
 import os
 import errno
 import sys
+import re
 
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -60,6 +61,7 @@ DEFAULTS = {'ndim': 2,
             'coffee_rings': 0,
             'distort': False,
             'scribble': False,
+            'segy_library': 'segyio',
             }
 
 HEADERS = [
@@ -74,6 +76,22 @@ HEADERS = [
     'trace_number_within_the_original_field_record',
     # 'trace_identification_code',
 ]
+
+
+def listdir(directory, match=None):
+    """
+    Wrapper for `os.listdir()` that returns full paths. A bit like
+    `utils.walk()` but not recursive. Case insensitive.
+    Args:
+        directory (str): The directory to list.
+    Yields:
+        str: Full path to each file in turn.
+    """
+    for f in os.listdir(directory):
+        if match:
+            if not re.search(match, f, flags=re.IGNORECASE):
+                continue
+        yield os.path.join(directory, f)
 
 
 def rgb_to_hex(rgb):
@@ -415,7 +433,7 @@ def is_path_exists_or_creatable(pathname: str) -> bool:
         return False
 
 
-def chunks(s, n):
+def chunks(s: str, n: int) -> str:
     """Produce `n`-character chunks from string `s`."""
     for start in range(0, len(s), n):
         yield s[start:start + n]
