@@ -2,7 +2,7 @@
 """
 Seismic object for seisplot and beyond.
 
-:copyright: 2016 Agile Geoscience
+:copyright: 2016-22 Agile Scientific
 :license: Apache 2.0
 """
 from functools import partial
@@ -318,7 +318,7 @@ class Seismic(object):
         w is window length for smoothing filter
         """
         if tickfmt is None:
-                # Set the tickformat.
+            # Set the tickformat.
             tickfmt = mtick.FormatStrFormatter('%.0f')
 
         if ax is None:
@@ -370,8 +370,7 @@ class Seismic(object):
         ax.set_xlabel('frequency [Hz]', fontsize=fontsize - 4)
         ax.xaxis.set_label_coords(0.5, -0.12)
         ax.set_xlim([0, np.amax(f)])
-        ax.set_xticklabels(ax.get_xticks(), fontsize=fontsize - 4)
-        ax.set_yticklabels(ax.get_yticks(), fontsize=fontsize - 4)
+        ax.tick_params(axis='both', labelsize=fontsize - 4)
         ax.set_ylabel('power [dB]', fontsize=fontsize - 4)
         ax.text(.98, .95, 'AMPLITUDE SPECTRUM',
                 horizontalalignment='right',

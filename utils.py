@@ -2,7 +2,7 @@
 """
 Utility functions for seisplot.
 
-:copyright: 2016 Agile Geoscience
+:copyright: 2016-22 Agile Scientific
 :license: Apache 2.0
 """
 import os

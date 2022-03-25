@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Notices during runtime.
 
-:copyright: 2015 Agile Geoscience
+:copyright: 2015-22 Agile Scientific
 :license: Apache 2.0
 """
 

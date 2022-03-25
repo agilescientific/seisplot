@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# config.yml
 # Configuration file for seisplot.py
 
 # Dimensions. Overriden by command line option -d.

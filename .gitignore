@@ -4,6 +4,7 @@ data/*.pdf
 data/*.png
 .ipynb
 .ipynb_checkpoints
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -3,7 +3,7 @@
 """
 Seismic plotter.
 
-:copyright: 2016 Agile Geoscience
+:copyright: 2016-22 Agile Scientific
 :license: Apache 2.0
 """
 import argparse
@@ -203,7 +203,7 @@ def main(target, cfg):
     pady = 0.75 / h  # 0.75 inch
     padx = 0.75 / w   # 0.75 inch
     cstrip = 0.3/h   # color_strip height = 0.3 in
-    charth = 1.5/h   # height of charts = 1.5 in
+    charth = 1.25/h   # height of charts = 1.25 in
     chartw = wsl/w - mr/w - padx  # or ml/w for left-hand sidelabel; same thing
     chartx = (ssl + padx)
     histy = 1.5 * mb/h + charth + pady
@@ -278,8 +278,8 @@ def main(target, cfg):
         ax.set_xlabel(utils.LABELS[line.xlabel],
                       fontsize=cfg['fontsize'],
                       ha='center')
-        ax.set_xticklabels(ax.get_xticks(), fontsize=cfg['fontsize'] - 2)
-        ax.set_yticklabels(ax.get_yticks(), fontsize=cfg['fontsize'] - 2)
+        ax.tick_params(axis='both', labelsize=cfg['fontsize'] - 2)
+
         ax.xaxis.set_major_formatter(tickfmt)
         ax.yaxis.set_major_formatter(tickfmt)
         if ('tslice' not in direction):
@@ -293,7 +293,7 @@ def main(target, cfg):
                        alpha=0.5
                        )
         except IndexError:
-            print("Problem with slineidx")
+            pass  # Nevermind.
 
         # Grid, optional.
         if cfg['grid_time'] or cfg['grid_traces']:

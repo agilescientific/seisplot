@@ -21,7 +21,7 @@ A utility for plotting `SEG-Y files <http://www.agilegeoscience.com/blog/2014/3/
 
 
 Installation
--------
+------------
 
 If you don't already have a reliable Python installation, and know how to wield it, I recommend downloading and installing Anaconda.
 
@@ -38,7 +38,7 @@ If you prefer to use ``obspy`` instead of ``segyio`` for SEG-Y reading, you can 
 
 
 Quick start
--------
+-----------
 
 You can see what the thing does with::
 
@@ -74,10 +74,10 @@ Example
 
 
 Recently added features
--------
+-----------------------
 
 - Uses ``segyio`` by default; ``obspy`` is still an option.
-- The ability to plot from 3D seismic, inlcuding a dual inline/crossline plot, and a timeslice.
+- The ability to plot from 3D seismic, including a dual inline/crossline plot, and a timeslice.
 - An intersection line on dual inline/crossline displays for 3Ds.
 - You can specify min and max time for the plot(s).
 - Optional gridlines on the seismic plot.

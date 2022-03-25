@@ -2,13 +2,12 @@
 """
 Simple seismic plotting functions.
 
-:copyright: 2016 Agile Geoscience
+:copyright: 2016-22 Agile Scientific
 :license: Apache 2.0
 """
 import numpy as np
 import matplotlib.font_manager as fm
 from matplotlib import cm
-from matplotlib.colors import makeMappingArray
 import utils
 
 
@@ -83,7 +82,7 @@ def plot_header(head_ax, s, fs, cfg, version=''):
     head_ax.set_yticks([])
     if cfg['credit']:
         head_ax.text(40, 42,
-                     'plot by github.com/agile-geoscience/seisplot v{}'.format(version),
+                     'plot by github.com/agilescientific/seisplot v{}'.format(version),
                      size=fs, color='lightgray',
                      ha='right', va='top'
                      )
@@ -125,7 +124,8 @@ def plot_histogram(ax, data, tickfmt, cfg):
                       alpha=0.6, color=color, lw=0)
 
     ax.set_xlim(-clip_val, clip_val)
-    ax.set_xticklabels(ax.get_xticks(), fontsize=fs-4)
+    ax.tick_params(axis='x', labelsize=fs-4)
+
     ax.set_xlabel('amplitude', fontsize=fs - 4)
     ax.xaxis.set_label_coords(0.5, -0.12)
     ax.set_ylim([0, y.max()])
@@ -181,7 +181,7 @@ def plot_colourbar(clr_ax, cmap, data=None, mima=False, plusminus=False, zorder=
     """
     seisbar = cm.get_cmap(cmap)
     ncolours = 32
-    seis_array = makeMappingArray(ncolours, seisbar)
+    seis_array = seisbar(np.linspace(0, 1, ncolours))
     color_arr = seis_array[np.newaxis, :]
     color_arr = color_arr[:, :, :-1]
     colour_roll = np.rollaxis(color_arr, 1)
